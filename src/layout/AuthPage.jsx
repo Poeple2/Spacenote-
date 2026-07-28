@@ -806,8 +806,7 @@ export default function AuthPage({ onAuth }) {
             <div style={{
               width: '80px',
               height: '80px',
-              border: '1.5px solid #a0a0a0',
-              borderRadius: '4px',
+              border: '1.5px solid #d6d6d6',
               background: '#ffffff'
             }} />
           </div>
@@ -1540,7 +1539,7 @@ style={{
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'rgba(255, 255, 255, 0.94)',
+                  background: 'rgba(255, 255, 255, 0.60)',
                   zIndex: 100,
                   overflowY: 'auto',
                   padding: '92px 28px 40px',
@@ -1561,7 +1560,7 @@ style={{
                     justifyContent: 'space-between',
                     padding: '0 18px',
                     boxSizing: 'border-box',
-                    borderBottom: '1px solid #eeeeee',
+                    borderBottom: 'none',
                     zIndex: 102,
                   }}
                 >
@@ -1667,33 +1666,34 @@ style={{
                             {interestOption.label}
                           </span>
                         </div>
-
                         <div
-                          style={{
-                            width: '16px',
-                            height: '16px',
-                            flexShrink: 0,
-                            borderRadius: '50%',
-                            border: isSelected
-                              ? '2px solid #ffbc00'
-                              : '2px solid #d2d2d2',
-                            background: isSelected ? '#ffbc00' : '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {isSelected && (
-                            <div
-                              style={{
-                                width: '6px',
-                                height: '6px',
-                                borderRadius: '50%',
-                                background: '#ffffff',
-                              }}
-                            />
-                          )}
-                        </div>
+  style={{
+    width: '30px',
+    height: '30px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#fff',
+    cursor: 'pointer',
+    transition: '0.2s',
+    position: 'relative',
+  left: '-70px',  // déplace vers la gauche
+    
+  }}
+>
+  <div
+    style={{
+      width: '5px',
+      height: '5px',
+      borderRadius: '50%',
+      background: isSelected ? '#ffbc00' : '#c8c8c8'
+    }}
+  />
+</div>
+
+  
+
+                        
                       </div>
                     );
                   })}
