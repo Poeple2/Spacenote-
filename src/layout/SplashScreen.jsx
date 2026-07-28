@@ -128,10 +128,10 @@ export default function SplashScreen({ onDone }) {
             
             {/* LE CARRÉ (Vide par défaut, ou contient votre icône si configurée) */}
             <div style={{
-              width: '26px',
-              height: '26px',
+              width: '25px',
+              height: '25px',
               border: '1.5px solid #aeaeaf',
-              borderRadius: '4px',
+              borderRadius: '1px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

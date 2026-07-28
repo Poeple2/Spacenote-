@@ -130,7 +130,7 @@ export default function NoteEditor({
     setMediaModal(false); setSelectedImg(null);
   };
 
-  // ── Lien ───────────────────────────────────c───────────────────────────────
+  // ── Lien ──────────────────────────────────────────────────────────────────
   const insertLink = (s) => {
     if (!note) return;
     updateNote({ links: [...(note.links || []), s] });
@@ -345,319 +345,287 @@ export default function NoteEditor({
         if (!e.target.closest('.table-ctx-menu') && !e.target.closest('.col-handle')) setTableCtxMenu(null);
       }}>
 
-      {/* ═══ BARRE D'OUTILS MODIFIÉE ═══════════════════════════════════════ */}
-      {/* MODIFICATION : justifyContent passé de 'flex-end' à 'space-between'
-          pour que le groupe d'icônes reste collé à gauche et que la recherche
-          soit collée à droite, comme sur la maquette (plus de gros vide au milieu) */}
-      <div className="editor-toolbar" id="toolbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '8px', padding: '10px 20px', width: '100%' }}>
-        
-        {/* MODIFICATION : gap réduit à 8px pour serrer les icônes entre elles */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '60px' }}>
-          
-          {/* ── COULEUR ── */}
-          <div className="rel">
-            <button onClick={() => toggle('color')} title="Couleur" style={{ background: 'transparent', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className="fa-solid fa-droplet" style={{ color: activePal.header, fontSize: '22px' }}></i>
-            </button>
-            {openDD === 'color' && (
-              <div className="colors-dropdown">
-                <div className="dropdown-title">Colors suggestions</div>
-                <ul className="colors-list">
-                  {Object.entries(COLOR_PALETTES).map(([name, pal]) => (
-                    <li key={name} className="color-item" onClick={(e) => { e.stopPropagation(); setColor(name); }}>
-                      <span className="color-square" style={{ background: pal.header }} />
-                      <span className="color-name">{name}</span>
-                      {note?.color === name && <i className="fa-solid fa-check check-icon" style={{ color: '#007AFF' }}></i>}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+      {/* ═══ BARRE D'OUTILS ═══════════════════════════════════════════════
+          FIX : style inline en flex-start + gap régulier de 14px pour que
+          la loupe suive directement le reste des icônes au lieu d'être
+          poussée tout à droite par un éventuel justify-content:space-between
+          hérité du CSS global (.editor-toolbar). */}
+      <div
+        className="editor-toolbar"
+        id="toolbar"
+        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', width: '100%' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-evenly', flex: 1, gap: '4px' }}>
 
-          {/* ── Aa ── */}
-          <div className="rel">
-            <button onClick={(e) => { e.stopPropagation(); toggle('aa'); }} title="Police"
-              style={{ background: openDD === 'aa' ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 18px */}
-              <span style={{ fontWeight: '600', fontSize: '18px', color: '#444', lineHeight: '1' }}>Aa</span>
-            </button>
-            {openDD === 'aa' && (
-              <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '6px', background: 'rgba(235,235,235,0.95)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '12px', boxShadow: '0 12px 35px rgba(0,0,0,0.15)', zIndex: 9999, width: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
-                  {[['B','bold','normal','none'],['I','normal','italic','none'],['U','normal','normal','underline'],['S','normal','normal','line-through']].map(([l,fw,fs,td]) => (
-                    <button key={l} style={{ background: 'transparent', border: 'none', fontSize: '15px', fontWeight: fw, fontStyle: fs, textDecoration: td, color: '#000', cursor: 'pointer', width: '24px' }}>{l}</button>
-                  ))}
+        {/* ── COULEUR ── */}
+        <div className="rel">
+          <button onClick={() => toggle('color')} title="Couleur">
+            <i className="fa-solid fa-droplet" style={{ color: activePal.header }}></i>
+          </button>
+          {openDD === 'color' && (
+            <div className="colors-dropdown">
+              <div className="dropdown-title">Colors suggestions</div>
+              <ul className="colors-list">
+                {Object.entries(COLOR_PALETTES).map(([name, pal]) => (
+                  <li key={name} className="color-item" onClick={(e) => { e.stopPropagation(); setColor(name); }}>
+                    <span className="color-square" style={{ background: pal.header }} />
+                    <span className="color-name">{name}</span>
+                    {note?.color === name && <i className="fa-solid fa-check check-icon" style={{ color: '#007AFF' }}></i>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        <div className="tb-divider" />
+
+        {/* ── Aa ── */}
+        <div className="rel">
+          <button onClick={(e) => { e.stopPropagation(); toggle('aa'); }} title="Police"
+            style={{ background: openDD === 'aa' ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 12px', cursor: 'pointer' }}>
+            <span style={{ fontWeight: '500', fontSize: '15px', color: '#444' }}>Aa</span>
+          </button>
+          {openDD === 'aa' && (
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '6px', background: 'rgba(235,235,235,0.95)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '12px', boxShadow: '0 12px 35px rgba(0,0,0,0.15)', zIndex: 9999, width: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
+                {[['B','bold','normal','none'],['I','normal','italic','none'],['U','normal','normal','underline'],['S','normal','normal','line-through']].map(([l,fw,fs,td]) => (
+                  <button key={l} style={{ background: 'transparent', border: 'none', fontSize: '15px', fontWeight: fw, fontStyle: fs, textDecoration: td, color: '#000', cursor: 'pointer', width: '24px' }}>{l}</button>
+                ))}
+              </div>
+              <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
+                <span style={{ fontSize: '10px', color: '#8e8e93' }}>✓</span><span style={{ fontWeight: '600' }}>Body</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
+                <span style={{ width: '10px' }}></span><span style={{ fontFamily: 'Courier New, monospace' }}>Monostyle</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
+                <span style={{ width: '10px' }}></span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ width: '3px', height: '12px', background: '#ff9500', borderRadius: '1px' }} />
+                  <span>Quote block</span>
                 </div>
-                <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                  <span style={{ fontSize: '10px', color: '#8e8e93' }}>✓</span><span style={{ fontWeight: '600' }}>Body</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                  <span style={{ width: '10px' }}></span><span style={{ fontFamily: 'Courier New, monospace' }}>Monostyle</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                  <span style={{ width: '10px' }}></span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <div style={{ width: '3px', height: '12px', background: '#ff9500', borderRadius: '1px' }} />
-                    <span>Quote block</span>
-                  </div>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none', cursor: 'pointer' }}>
-                    <option>Posterama</option><option>Helvetica</option><option>Georgia</option>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none', cursor: 'pointer' }}>
+                  <option>Posterama</option><option>Helvetica</option><option>Georgia</option>
+                </select>
+                <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
+              </div>
+              <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ position: 'relative', width: '50px' }}>
+                  <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none' }}>
+                    <option>8</option><option>10</option><option>12</option><option>14</option><option>16</option>
                   </select>
-                  <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
+                  <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
                 </div>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <div style={{ position: 'relative', width: '50px' }}>
-                    <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none' }}>
-                      <option>8</option><option>10</option><option>12</option><option>14</option><option>16</option>
-                    </select>
-                    <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
-                  </div>
-                  <div style={{ position: 'relative', flex: 1, height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 6px', gap: '4px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700' }}>A</span>
-                    <div style={{ width: '12px', height: '12px', background: '#000', borderRadius: '2px', marginLeft: 'auto', marginRight: '10px' }} />
-                    <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
-                  </div>
+                <div style={{ position: 'relative', flex: 1, height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 6px', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: '700' }}>A</span>
+                  <div style={{ width: '12px', height: '12px', background: '#000', borderRadius: '2px', marginLeft: 'auto', marginRight: '10px' }} />
+                  <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
 
-          {/* ── LISTE ── */}
-          <div className="rel">
-            <button onClick={() => toggle('list')} title="Create a list"
-              style={{ background: openDD === 'list' ? '#dcdcdc' : 'transparent', borderRadius: '4px', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className="fa-solid fa-list-ul" style={{ fontSize: '19px', color: '#444' }}></i>
-            </button>
-            {openDD === 'list' && (
-              <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '4px', background: 'rgba(238,238,238,0.94)', backdropFilter: 'blur(25px)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '230px', display: 'flex', gap: '6px' }}>
-                <button onClick={closeAll} style={{ width: '42px', height: '54px', background: '#d0e1f9', border: 'none', borderRadius: '5px', color: '#0055cc', fontSize: '11px', fontWeight: '500', cursor: 'pointer' }}>None</button>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '25px', flex: 1 }}>
-                  {[
-                    { type: 'disc', els: ['•','•','•'] }, { type: 'circle', els: ['◦','◦','◦'] },
-                    { type: 'num', els: ['1.','2.','3.'] }, { type: 'check', els: ['❑','❑','❑'] },
-                    { type: 'diamond', els: ['◆','◆','◆'] }, { type: 'arrow', els: ['➔','➔','➔'] },
-                    { type: 'checkmark', els: ['✓','✓','✓'] },
-                  ].map((item, idx) => (
-                    <button key={idx} onClick={() => insertList(item.type)}
-                      style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: '4px', padding: '4px 2px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.8)'}
-                      onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.4)'}>
-                      {item.els.map((bullet, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                          <span style={{ fontSize: '8px', color: '#444', minWidth: '8px', textAlign: 'center' }}>{bullet}</span>
-                          <div style={{ height: '1.5px', background: '#aaa', flex: 1 }} />
-                        </div>
-                      ))}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── TABLEAU ── */}
-          <div className="rel">
-            <button onClick={(e) => { e.stopPropagation(); if (!note) return; note.tables?.length > 0 ? updateNote({ tables: [] }) : insertTable(2, 2); }}
-              title={note?.tables?.length > 0 ? 'Remove table' : 'Add a table'}
-              style={{ background: note?.tables?.length > 0 ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : Dimensions du SVG augmentées à width="22" height="18" */}
-              <svg width="22" height="18" viewBox="0 0 18 14" fill="none">
-                <rect x="0.5" y="0.5" width="17" height="13" rx="1.5" stroke="#444" strokeWidth="1"/>
-                <line x1="9" y1="0.5" x2="9" y2="13.5" stroke="#444" strokeWidth="1"/>
-                <line x1="0.5" y1="7" x2="17.5" y2="7" stroke="#444" strokeWidth="1"/>
-              </svg>
-            </button>
-          </div>
-
-          {/* ── IMAGE / MEDIA ── */}
-          <div className="rel">
-            <button onClick={() => toggle('media')} title="open your device's photo browser" className={openDD === 'media' ? 'active' : ''} style={{ background: 'transparent', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className="fa-regular fa-image" style={{ fontSize: '19px', color: '#444' }}></i>
-            </button>
-            {openDD === 'media' && (
-              <div className="media-dropdown" onClick={(e) => e.stopPropagation()}>
-                <button className="media-item media-item-top" onClick={() => { setMediaModal(true); setMediaTab('photos'); closeAll(); }}>Photos &amp; Videos</button>
-                <div className="media-section-separator" />
-                <div className="media-section-label">GhostLabs App</div>
-                <button className="media-item" onClick={() => { fileInputRef.current?.click(); closeAll(); }}>Take a photo</button>
-                <button className="media-item" onClick={closeAll}>Scan documents</button>
-                <button className="media-item" onClick={closeAll}>Add a sketch</button>
-              </div>
-            )}
-          </div>
-          <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFileChange} />
-
-          {/* ── LIEN ── */}
-          <div className="rel">
-            <button onClick={() => toggle('link')} title="Add a link." className={openDD === 'link' ? 'active' : ''} style={{ background: 'transparent', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className="fa-solid fa-link" style={{ fontSize: '19px', color: '#444' }}></i>
-            </button>
-            {openDD === 'link' && (
-              <div className="link-dropdown" onClick={(e) => e.stopPropagation()}>
-                <div className="link-dropdown-title">Add a link to the app</div>
-                <div className="link-suggestions">
-                  {LINK_SUGGESTIONS.map((s) => (
-                    <div key={s.id} className="link-suggestion-row">
-                      <div className="link-suggestion-left">
-                        <div className="link-favicon-wrap">
-                          {s.type === 'youtube' ? <i className="fa-brands fa-youtube" style={{ color: '#FF0000', fontSize: '18px' }}></i> : <i className="fa-solid fa-globe" style={{ color: '#555', fontSize: '14px' }}></i>}
-                        </div>
-                        <div className="link-suggestion-text">
-                          <div className="link-suggestion-title">{s.title}</div>
-                          <div className="link-suggestion-source">{s.source}</div>
-                        </div>
-                      </div>
-                      <button className="link-add-btn" onClick={() => insertLink(s)}>Add link</button>
-                    </div>
-                  ))}
-                </div>
-                <div className="link-divider" />
-                <div className="link-manual-row">
-                  <input type="text" className="link-manual-input" placeholder="Coller un lien..." value={linkInput}
-                    onChange={(e) => setLinkInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && insertCustomLink()} />
-                  <button className="link-add-btn" onClick={insertCustomLink}>Add</button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* ── LOCK ── */}
-          <div className="rel">
-            <button className={openDD === 'lock' || note?.isLocked ? 'active' : ''} onClick={() => toggle('lock')} title="Verrouiller" style={{ background: 'transparent', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className={`fa-solid ${note?.isLocked ? 'fa-lock' : 'fa-lock-open'}`} style={{ fontSize: '19px', color: '#444' }}></i>
-            </button>
-            {openDD === 'lock' && (
-              <div className="lock-dropdown">
-                <button className="lock-item" onClick={handleLockToggleAction}>{note?.isLocked ? 'Unlock this note' : 'Lock this note'}</button>
-                <button className="lock-item" onClick={handleUnlockAll}>Close all locked notes</button>
-              </div>
-            )}
-          </div>
-
-          {/* ── PARTAGER ── */}
-          <div className="rel">
-            <button onClick={() => toggle('share')} title="Partager" style={{ background: 'transparent', border: 'none', padding: '6px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {/* MODIFICATION : fontSize augmenté à 19px */}
-              <i className="fa-solid fa-arrow-up-from-bracket" style={{ fontSize: '19px', color: '#444' }}></i>
-            </button>
-            {openDD === 'share' && (
-              <div className="share-dropdown" onClick={(e) => e.stopPropagation()}>
-                <div className="share-header">
-                  <div className="note-mini-preview">
-                    <div className="mini-header-blue">{note?.title || 'Untitled'}</div>
-                    <div className="mini-body-lines"><div className="mini-line"></div><div className="mini-line short"></div></div>
-                  </div>
-                  <div className="share-header-text">
-                    <h3>{note?.title || 'New note'}</h3>
-                    <p>{note?.folder || 'Notes'}</p>
-                  </div>
-                </div>
-                <div className="share-select-container">
-                  <select className="share-action-select"><option>Send a copy</option><option>Collaborate</option></select>
-                </div>
-                <div className="share-section-title">SpaceChat / GhostLabs Contacts</div>
-                <div className="share-contacts-row">
-                  {[{ name: 'Moses', cls: 'avatar-yellow' }, { name: 'Adam', cls: 'avatar-green' }, { name: 'Kahina', cls: 'avatar-purple' }].map(({ name, cls }) => (
-                    <div key={name} className="contact-item" onClick={closeAll}>
-                      <div className={`contact-avatar ${cls}`}><i className="fa-solid fa-user"></i></div>
-                      <span>{name}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="share-divider"></div>
-                <div className="share-app-row" onClick={closeAll}>
-                  <div className="app-icon-mail"><i className="fa-solid fa-envelope"></i></div>
-                  <span className="app-label">Mail</span>
-                </div>
-              </div>
-            )}
-          </div>
-          
-        </div> {/* FIN DU BLOC SOUDÉ D'ICÔNES */}
-
-        {/* ── RECHERCHE STYLE MAC AVEC ANIMATION DE DÉPLIEMENT HORIZONTAL ── */}
-        <div className="search-wrapper rel" style={{ display: 'flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
-          <div style={{
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            background: searchOpen ? 'rgba(235,235,235,0.7)' : 'transparent',
-            border: searchOpen ? '1.5px solid #ff9500' : '1.5px solid transparent',
-            borderRadius: '22px',
-            padding: searchOpen ? '0 8px' : '0',
-            transition: 'all 0.35s cubic-bezier(0.25, 1, 0.5, 1)',
-            overflow: 'visible'
-          }}>
-            
-            <input 
-              type="text" 
-              placeholder="Search" 
-              value={mediaSearch} 
-              onChange={(e) => setMediaSearch(e.target.value)}
-              style={{ 
-                width: searchOpen ? '200px' : '0px', 
-                height: '40px', 
-                background: 'transparent', 
-                border: 'none', 
-                padding: 0,
-                fontSize: '22px', 
-                outline: 'none',
-                opacity: searchOpen ? 1 : 0,
-                transition: 'width 0.35s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s',
-                pointerEvents: searchOpen ? 'auto' : 'none'
-              }} 
-            />
-
-            <button 
-              title="Search" 
-              onClick={() => {
-                if (searchOpen && !mediaSearch.trim()) {
-                  setSearchOpen(false);
-                } else {
-                  closeAll();
-                  setSearchOpen(true);
-                }
-              }}
-              style={{ 
-                background: 'transparent', 
-                border: 'none', 
-                padding: '6px 8px', 
-                cursor: 'pointer', 
-                borderRadius: '5px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '15px', color: '#444' }}></i>
-            </button>
-
-            {searchOpen && !mediaSearch.trim() && (
-              <div style={{ position: 'absolute', top: '100%', right: '0', marginTop: '8px', background: 'rgba(242,242,247,0.96)', backdropFilter: 'blur(30px)', borderRadius: '12px', padding: '14px', boxShadow: '0 12px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '270px', display: 'flex', flexDirection: 'column', gap: '8px', border: '1px solid rgba(0,0,0,0.05)' }}>
-                <div style={{ fontSize: '11px', fontWeight: '600', color: '#8e8e93', paddingLeft: '4px', textTransform: 'uppercase', letterSpacing: '0.3px' }}>Research suggestions</div>
+        {/* ── LISTE ── */}
+        <div className="rel">
+          <button onClick={() => toggle('list')} title="Create a list"
+            style={{ background: openDD === 'list' ? '#dcdcdc' : 'transparent', borderRadius: '4px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
+            <i className="fa-solid fa-list-ul" style={{ fontSize: '15px', color: '#444' }}></i>
+          </button>
+          {openDD === 'list' && (
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '4px', background: 'rgba(238,238,238,0.94)', backdropFilter: 'blur(25px)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '230px', display: 'flex', gap: '6px' }}>
+              <button onClick={closeAll} style={{ width: '42px', height: '54px', background: '#d0e1f9', border: 'none', borderRadius: '5px', color: '#0055cc', fontSize: '11px', fontWeight: '500', cursor: 'pointer' }}>None</button>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '25px', flex: 1 }}>
                 {[
-                  { ic: 'fa-user-group', t: 'Shared notes' }, { ic: 'fa-lock', t: 'Locked Notes' },
-                  { ic: 'fa-list-ul', t: 'Notes with lists' }, { ic: 'fa-hashtag', t: 'Notes with tags' },
-                ].map(({ ic, t }, idx) => (
-                  <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#000', cursor: 'pointer', padding: '6px 8px', borderRadius: '8px' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <i className={`fa-solid ${ic}`} style={{ width: '16px', textAlign: 'center', color: '#555' }}></i>
-                    <span>{t}</span>
+                  { type: 'disc', els: ['•','•','•'] }, { type: 'circle', els: ['◦','◦','◦'] },
+                  { type: 'num', els: ['1.','2.','3.'] }, { type: 'check', els: ['❑','❑','❑'] },
+                  { type: 'diamond', els: ['◆','◆','◆'] }, { type: 'arrow', els: ['➔','➔','➔'] },
+                  { type: 'checkmark', els: ['✓','✓','✓'] },
+                ].map((item, idx) => (
+                  <button key={idx} onClick={() => insertList(item.type)}
+                    style={{ background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(0,0,0,0.04)', borderRadius: '4px', padding: '4px 2px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.8)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.4)'}>
+                    {item.els.map((bullet, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <span style={{ fontSize: '8px', color: '#444', minWidth: '8px', textAlign: 'center' }}>{bullet}</span>
+                        <div style={{ height: '1.5px', background: '#aaa', flex: 1 }} />
+                      </div>
+                    ))}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── TABLEAU ── */}
+        <div className="rel">
+          <button onClick={(e) => { e.stopPropagation(); if (!note) return; note.tables?.length > 0 ? updateNote({ tables: [] }) : insertTable(2, 2); }}
+            title={note?.tables?.length > 0 ? 'Remove table' : 'Add a table'}
+            style={{ background: note?.tables?.length > 0 ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
+            <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+              <rect x="0.5" y="0.5" width="17" height="13" rx="1.5" stroke="#444" strokeWidth="1"/>
+              <line x1="9" y1="0.5" x2="9" y2="13.5" stroke="#444" strokeWidth="1"/>
+              <line x1="0.5" y1="7" x2="17.5" y2="7" stroke="#444" strokeWidth="1"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* ── IMAGE / MEDIA ── */}
+        <div className="rel">
+          <button onClick={() => toggle('media')} title="open your device's photo browser" className={openDD === 'media' ? 'active' : ''}>
+            <i className="fa-regular fa-image"></i>
+          </button>
+          {openDD === 'media' && (
+            <div className="media-dropdown" onClick={(e) => e.stopPropagation()}>
+              <button className="media-item media-item-top" onClick={() => { setMediaModal(true); setMediaTab('photos'); closeAll(); }}>Photos &amp; Videos</button>
+              <div className="media-section-separator" />
+              <div className="media-section-label">GhostLabs App</div>
+              <button className="media-item" onClick={() => { fileInputRef.current?.click(); closeAll(); }}>Take a photo</button>
+              <button className="media-item" onClick={closeAll}>Scan documents</button>
+              <button className="media-item" onClick={closeAll}>Add a sketch</button>
+            </div>
+          )}
+        </div>
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }} onChange={handleFileChange} />
+
+        {/* ── LIEN ── */}
+        <div className="rel">
+          <button onClick={() => toggle('link')} title="Add a link." className={openDD === 'link' ? 'active' : ''}>
+            <i className="fa-solid fa-link"></i>
+          </button>
+          {openDD === 'link' && (
+            <div className="link-dropdown" onClick={(e) => e.stopPropagation()}>
+              <div className="link-dropdown-title">Add a link to the app</div>
+              <div className="link-suggestions">
+                {LINK_SUGGESTIONS.map((s) => (
+                  <div key={s.id} className="link-suggestion-row">
+                    <div className="link-suggestion-left">
+                      <div className="link-favicon-wrap">
+                        {s.type === 'youtube' ? <i className="fa-brands fa-youtube" style={{ color: '#FF0000', fontSize: '18px' }}></i> : <i className="fa-solid fa-globe" style={{ color: '#555', fontSize: '14px' }}></i>}
+                      </div>
+                      <div className="link-suggestion-text">
+                        <div className="link-suggestion-title">{s.title}</div>
+                        <div className="link-suggestion-source">{s.source}</div>
+                      </div>
+                    </div>
+                    <button className="link-add-btn" onClick={() => insertLink(s)}>Add link</button>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+              <div className="link-divider" />
+              <div className="link-manual-row">
+                <input type="text" className="link-manual-input" placeholder="Coller un lien..." value={linkInput}
+                  onChange={(e) => setLinkInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && insertCustomLink()} />
+                <button className="link-add-btn" onClick={insertCustomLink}>Add</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="tb-divider" />
+
+        {/* ── LOCK ── */}
+        <div className="rel">
+          <button className={openDD === 'lock' || note?.isLocked ? 'active' : ''} onClick={() => toggle('lock')} title="Verrouiller">
+            <i className={`fa-solid ${note?.isLocked ? 'fa-lock' : 'fa-lock-open'}`}></i>
+          </button>
+          {openDD === 'lock' && (
+            <div className="lock-dropdown">
+              <button className="lock-item" onClick={handleLockToggleAction}>{note?.isLocked ? 'Unlock this note' : 'Lock this note'}</button>
+              <button className="lock-item" onClick={handleUnlockAll}>Close all locked notes</button>
+            </div>
+          )}
+        </div>
+
+        {/* ── PARTAGER ── */}
+        <div className="rel">
+          <button onClick={() => toggle('share')} title="Partager">
+            <i className="fa-solid fa-arrow-up-from-bracket"></i>
+          </button>
+          {openDD === 'share' && (
+            <div className="share-dropdown" onClick={(e) => e.stopPropagation()}>
+              <div className="share-header">
+                <div className="note-mini-preview">
+                  <div className="mini-header-blue">{note?.title || 'Untitled'}</div>
+                  <div className="mini-body-lines"><div className="mini-line"></div><div className="mini-line short"></div></div>
+                </div>
+                <div className="share-header-text">
+                  <h3>{note?.title || 'New note'}</h3>
+                  <p>{note?.folder || 'Notes'}</p>
+                </div>
+              </div>
+              <div className="share-select-container">
+                <select className="share-action-select"><option>Send a copy</option><option>Collaborate</option></select>
+              </div>
+              <div className="share-section-title">SpaceChat / GhostLabs Contacts</div>
+              <div className="share-contacts-row">
+                {[{ name: 'Moses', cls: 'avatar-yellow' }, { name: 'Adam', cls: 'avatar-green' }, { name: 'Kahina', cls: 'avatar-purple' }].map(({ name, cls }) => (
+                  <div key={name} className="contact-item" onClick={closeAll}>
+                    <div className={`contact-avatar ${cls}`}><i className="fa-solid fa-user"></i></div>
+                    <span>{name}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="share-divider"></div>
+              <div className="share-app-row" onClick={closeAll}>
+                <div className="app-icon-mail"><i className="fa-solid fa-envelope"></i></div>
+                <span className="app-label">Mail</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── RECHERCHE ── */}
+        {/* FIX : le bouton loupe garde toujours sa taille fixe dans le flux
+            flex normal. Quand searchOpen est true, le champ + dropdown sont
+            positionnés en absolute (position: 'absolute', right: 0) donc ils
+            se superposent visuellement sans jamais élargir la largeur réelle
+            de la barre d'outils — les autres icônes ne bougent plus et ne
+            disparaissent plus. */}
+        <div className="search-wrapper rel" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <button title="Search" onClick={(e) => { e.stopPropagation(); if (searchOpen) { closeAll(); } else { closeAll(); setSearchOpen(true); } }}
+            style={{ background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', borderRadius: '5px' }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+            <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '16px', color: '#444' }}></i>
+          </button>
+
+          {searchOpen && (
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '50%', right: '0', transform: 'translateY(-50%)', zIndex: 10000 }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input type="text" placeholder="Search" autoFocus value={mediaSearch} onChange={(e) => setMediaSearch(e.target.value)}
+                  style={{ width: '240px', height: '26px', background: 'rgba(235,235,235,0.6)', border: '1.5px solid #ff9500', borderRadius: '6px', padding: '0 28px 0 10px', fontSize: '13px', outline: 'none' }} />
+                <div style={{ position: 'absolute', right: '8px', cursor: 'pointer' }} onClick={() => setSearchOpen(false)}>
+                  <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '13px', color: '#777' }}></i>
+                </div>
+              </div>
+              {!mediaSearch.trim() && (
+                <div style={{ position: 'absolute', top: '100%', right: '0', marginTop: '6px', background: 'rgba(225,225,225,0.94)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '14px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '270px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#666', paddingLeft: '4px' }}>Research suggestions</div>
+                  {[
+                    { ic: 'fa-user-group', t: 'Shared notes' }, { ic: 'fa-lock', t: 'Locked Notes' },
+                    { ic: 'fa-list-ul', t: 'Notes with lists' }, { ic: 'fa-hashtag', t: 'Notes with tags' },
+                    { ic: 'fa-pen-ruler', t: 'Notes with drawings' }, { ic: 'fa-expand', t: 'Notes with scanned documents' },
+                    { ic: 'fa-paperclip', t: 'Notes with attachments' },
+                  ].map(({ ic, t }, idx) => (
+                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', color: '#000', cursor: 'pointer', padding: '3px 4px', borderRadius: '6px' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                      <i className={`fa-solid ${ic}`} style={{ width: '18px', textAlign: 'center', color: '#444' }}></i>
+                      <span>{t}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
         </div>
       </div>
       {/* ═══ FIN TOOLBAR ══════════════════════════════════════════════════ */}
@@ -673,8 +641,10 @@ export default function NoteEditor({
         </div>
       </div>
 
-      {/* ═══ FOOTER + BOUTONS BAS ════════════════════════════════════════ */}
+      {/* ═══ FOOTER + BOUTONS BAS (sur la même ligne) ════════════════════ */}
       <div className="editor-bottom" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '14px 20px', background: '#fff', borderTop: '1px solid #e5e7eb' }}>
+
+        {/* Champ titre — visible seulement quand il y a des cartes groupées */}
         {note && note.cards && note.cards.length > 0 && (
           <input
             type="text"
@@ -697,14 +667,17 @@ export default function NoteEditor({
           />
         )}
 
+        {/* + orange : ajoute une carte */}
         <button className="btn-round yellow" onClick={addGroupCard} title="Add more notes on the same doc">
           <i className="fa-solid fa-plus"></i>
         </button>
 
+        {/* - rouge : supprime la dernière carte */}
         <button className="btn-round red" onClick={removeLastGroupCard} title="Remove last note">
           <i className="fa-solid fa-minus"></i>
         </button>
 
+        {/* vert : ouvre la modal pour renommer */}
         <button className="btn-round teal" onClick={openRenameModal} title="Rename this group of cards">
           <i className="fa-regular fa-copy"></i>
         </button>
@@ -816,8 +789,8 @@ export default function NoteEditor({
           {lockStep === 'password-input' && (
             <div className="lock-modal" onClick={(e) => e.stopPropagation()}>
               <div className="lock-icon-circle"><i className="fa-solid fa-lock"></i></div>
-              <h2 style={{ margin: '0 0 5px 0' }}>SpaceNotes</h2>
-              <p style={{ color: '#666', fontSize: '13px', margin: '0 0 22px 0' }}>Saisissez le mot de passe pour verrouiller cette note.</p>
+              <h2 style={{ marginBottom: '5px' }}>SpaceNotes</h2>
+              <p style={{ color: '#666', fontSize: '13px', marginBottom: '22px' }}>Saisissez le mot de passe pour verrouiller cette note.</p>
               <input type="password" className="lock-input" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
               <div className="lock-modal-actions">
                 <button className="btn-lock-cancel" onClick={() => setLockStep(note?.isLocked ? null : 'options')}>Annuler</button>

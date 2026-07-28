@@ -268,11 +268,12 @@ const S = {
     fontWeight: '400',
   },
   stepperContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    margin: '12px 0 20px 0',
-  },
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '1px',
+  margin: '0 0 42px 0',
+},
   stepCircle: {
     width: '38px',
     height: '38px',
@@ -284,7 +285,7 @@ const S = {
     fontWeight: '600',
   },
   stepLine: {
-    width: '20px',
+    width: '12px',
     height: '1px',
     background: '#cccccc',
   },
@@ -354,7 +355,7 @@ const S = {
 };
 
 // Colonne de molette rotative façon iOS (défilement + snap + effet de fondu sur la profondeur)
-const WheelColumn = ({ items, selectedIndex, onSelectIndex, renderItem, width = 110 }) => {
+const WheelColumn = ({ items, selectedIndex, onSelectIndex, renderItem, width = 110, fontScale = 1 }) => {
   const containerRef = useRef(null);
   const rafRef = useRef(null);
   const safeIndex = Math.max(0, selectedIndex);
@@ -407,7 +408,7 @@ const WheelColumn = ({ items, selectedIndex, onSelectIndex, renderItem, width = 
         const itemCenter = WHEEL_PADDING + i * WHEEL_ITEM_HEIGHT + WHEEL_ITEM_HEIGHT / 2;
         const scrollCenter = scrollTop + WHEEL_HEIGHT / 2;
         const distance = Math.min(Math.abs(itemCenter - scrollCenter) / WHEEL_ITEM_HEIGHT, 2);
-        const fontSize = 22 - distance * 4;
+        const fontSize = (22 - distance * 4) * fontScale;
         const opacity = Math.max(1 - distance * 0.4, 0.2);
         const isCenter = distance < 0.4;
 
@@ -447,9 +448,8 @@ const CentralLogo = () => (
     width: '100px',
     height: '100px',
     background: '#ffffff',
-    borderRadius: '16px',
-    border: '1.5px solid #e5e5e5',
-    boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
+    borderRadius: '1px',
+    
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1073,28 +1073,50 @@ export default function AuthPage({ onAuth }) {
       {mode === 'signup' && (
         <>
           {/* GAUCHE : Formulaire d'inscription */}
-          <div style={S.panelWhite}>
+          <div style={{
+            ...S.panelWhite,
+            height: '100vh',
+            justifyContent: 'flex-start',
+            padding: '32px 60px 28px',
+          }}>
             
             <div style={{ 
-              width: '100%', 
-              maxWidth: '380px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center',
-              opacity: isFormBlurred ? 0.45 : 1,
-              transition: 'opacity 0.2s ease-in-out',
-              pointerEvents: isFormBlurred ? 'none' : 'auto'
-            }}>
+  width: '100%',
+  maxWidth: '420px',
+  minHeight: 'calc(100vh - 60px)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  opacity: isFormBlurred ? 0.45 : 1,
+  transition: 'opacity 0.2s ease-in-out',
+  pointerEvents: isFormBlurred ? 'none' : 'auto'
+}}>
               
-              <h1 style={{ ...S.title, marginBottom: '20px' }}>Create an account</h1>
+              <h1
+style={{
+    ...S.title,
+    fontSize: '32px',
+    marginBottom: '42px',
+    textAlign: 'center'
+  }}
+>
+  Create an account
+</h1>
 
-              <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+             <div
+  style={{
+    display: 'flex',
+    gap: '18px',
+    justifyContent: 'center',
+    marginBottom: '30px'
+  }}
+>
                 <button style={S.btnSocialBadge}><i className="fa-brands fa-google" style={{ color: '#EA4335' }}></i></button>
                 <button style={S.btnSocialBadge}><i className="fa-brands fa-apple" style={{ color: '#000000' }}></i></button>
                 <button style={S.btnSocialBadge}><i className="fa-brands fa-facebook-f" style={{ color: '#1877F2' }}></i></button>
               </div>
 
-              <div style={S.divider}>
+              <div style={{ ...S.divider, gap: '18px', margin: '0 0 54px 0' }}>
                 <div style={S.dividerLine} />
                 <span style={S.dividerText}>or</span>
                 <div style={S.dividerLine} />
@@ -1105,13 +1127,20 @@ export default function AuthPage({ onAuth }) {
               {/* ÉTAPE 1 */}
               {suStep === 1 && (
                 <>
-                  <p style={{ fontSize: '12px', color: '#8e8e93', textAlign: 'center', lineHeight: '1.6', margin: '0 0 24px 0', maxWidth: '320px' }}>
+                  <p style={{
+  fontSize: '12px',
+  color: '#8e8e93',
+  textAlign: 'center',
+  lineHeight: '1.6',
+  margin: '0 0 54px 0',
+  maxWidth: '340px'
+}}>
                     Select an option to access tailored tools.<br/>
                     Enter a User name to navigate on SpaceNotes.<br/>
                     Enter your full name to access the Marketplace.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '340px', marginBottom: '24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '340px', marginBottom: '24px' }}>
                     
                     <div 
                       style={S.customSelectTrigger} 
@@ -1149,7 +1178,14 @@ export default function AuthPage({ onAuth }) {
                     Occupation refers to your job. By giving the name of your institution, you can receive targeted ads tailored to your occupation, interests and AI needs.
                   </p>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '340px', marginBottom: '24px' }}>
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '30px',
+                    width: '380px',
+                    maxWidth: '100%',
+                    marginBottom: '0px'
+                  }}>
                     
                     <div 
                       style={S.customSelectTrigger} 
@@ -1297,10 +1333,27 @@ export default function AuthPage({ onAuth }) {
               )}
 
               {/* Boutons de navigation : rangée volontairement plus large que le formulaire, comme sur la maquette */}
-              <div style={{ display: 'flex', gap: '12px', width: '460px', maxWidth: '460px', justifyContent: suStep > 1 ? 'space-between' : 'center' }}>
+              <div style={{
+                display: 'flex',
+                width: '100%',
+                maxWidth: '760px',
+                justifyContent: suStep > 1 ? 'space-between' : 'center',
+                alignItems: 'center',
+                gap: suStep > 1 ? '110px' : '0px',
+                marginTop: '62px',
+                padding: '20px 8px 10px',
+                boxSizing: 'border-box',
+              }}>
                 {suStep > 1 && (
                   <button 
-                    style={{ ...S.btnYellow, background: '#e5e5e5', color: '#333333', width: '180px', boxShadow: 'none' }} 
+                    style={{
+                      ...S.btnYellow,
+                      background: '#e5e5e5',
+                      color: '#333333',
+                      width: '295px',
+                      height: '40px',
+                      boxShadow: 'none'
+                    }} 
                     onClick={handleSignUpBack}
                   >
                     BACK
@@ -1309,7 +1362,7 @@ export default function AuthPage({ onAuth }) {
                 
                 {suStep === 1 ? (
                   <button 
-                    style={{ ...(isStep1Valid ? S.btnYellow : S.btnNextDisabled), width: '260px' }} 
+                    style={{ ...(isStep1Valid ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
                     onClick={handleSignUpNext}
                     disabled={!isStep1Valid}
                   >
@@ -1317,7 +1370,7 @@ export default function AuthPage({ onAuth }) {
                   </button>
                 ) : suStep === 2 ? (
                   <button 
-                    style={{ ...(isStep2Valid ? S.btnYellow : S.btnNextDisabled), width: '260px' }} 
+                    style={{ ...(isStep2Valid ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
                     onClick={handleSignUpNext}
                     disabled={!isStep2Valid}
                   >
@@ -1325,7 +1378,7 @@ export default function AuthPage({ onAuth }) {
                   </button>
                 ) : suStep === 3 ? (
                   <button 
-                    style={{ ...(isStep3Valid ? S.btnYellow : S.btnNextDisabled), width: '260px' }} 
+                    style={{ ...(isStep3Valid ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
                     onClick={handleSignUpNext}
                     disabled={!isStep3Valid}
                   >
@@ -1333,7 +1386,7 @@ export default function AuthPage({ onAuth }) {
                   </button>
                 ) : (
                   <button 
-                    style={{ ...(isStep4Valid ? S.btnYellow : S.btnNextDisabled), width: '260px' }} 
+                    style={{ ...(isStep4Valid ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
                     onClick={handleSignUpNext}
                     disabled={!isStep4Valid}
                   >
@@ -1481,72 +1534,165 @@ export default function AuthPage({ onAuth }) {
               </div>
             )}
 
-            {/* ── OVERLAY ÉTAPE 2 : SELECTION DES INTERETS ── */}
+            {/* ── OVERLAY ÉTAPE 2 : SÉLECTION DES CENTRES D’INTÉRÊT ── */}
             {isInterestDropdownOpen && (
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'rgba(255, 255, 255, 0.94)', 
-                zIndex: 100,
-                overflowY: 'auto',
-                padding: '40px 20px',
-                boxSizing: 'border-box'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                  <h2 style={{ fontSize: '24px', fontWeight: '600', color: '#000000', margin: 0 }}>Areas of Interest</h2>
-                  <button 
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(255, 255, 255, 0.94)',
+                  zIndex: 100,
+                  overflowY: 'auto',
+                  padding: '92px 28px 40px',
+                  boxSizing: 'border-box',
+                }}
+              >
+                {/* Barre supérieure fixe */}
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '72px',
+                    background: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0 18px',
+                    boxSizing: 'border-box',
+                    borderBottom: '1px solid #eeeeee',
+                    zIndex: 102,
+                  }}
+                >
+                  <button
+                    type="button"
                     onClick={() => setIsInterestDropdownOpen(false)}
                     style={{
-                      background: '#ffbc00',
-                      border: 'none',
+                      width: '82px',
+                      height: '36px',
+                      border: '2px solid #ffbc00',
                       borderRadius: '6px',
-                      color: '#ffffff',
-                      fontWeight: 'bold',
-                      padding: '8px 16px',
-                      cursor: 'pointer'
+                      background: '#ffffff',
+                      color: '#000000',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
                     }}
                   >
-                    DONE
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsInterestDropdownOpen(false)}
+                    style={{
+                      width: '82px',
+                      height: '36px',
+                      border: 'none',
+                      borderRadius: '6px',
+                      background: '#ffbc00',
+                      color: '#ffffff',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Done
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Liste des centres d’intérêt */}
+                <div
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '18px',
+                  }}
+                >
                   {INTERESTS.map((interestOption) => {
                     const isSelected = selectedInterests.includes(interestOption.id);
+
                     return (
-                      <div 
+                      <div
                         key={interestOption.id}
                         onClick={() => toggleInterestOption(interestOption.id)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <div style={{
-                            width: '74px', 
-                            height: '74px', 
-                            borderRadius: '18px', 
-                            background: interestOption.color,
-                            border: '1.5px solid #dcdcdc', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center'
-                          }}>
-                            <div style={{ width: '40px', height: '40px', border: '1.5px solid #a0a0a0', borderRadius: '6px' }} />
-                          </div>
-                          <span style={{ fontSize: '20px', fontWeight: '500', color: '#000000' }}>{interestOption.label}</span>
-                        </div>
-
-                        <div style={{
-                          width: '18px',
-                          height: '18px',
-                          borderRadius: '50%',
-                          border: '2px solid #a0a0a0',
+                        style={{
+                          minHeight: '74px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          background: isSelected ? '#ffbc00' : 'transparent',
-                          borderColor: isSelected ? '#ffbc00' : '#a0a0a0'
-                        }}>
-                          {isSelected && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ffffff' }} />}
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '24px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '68px',
+                              height: '68px',
+                              flexShrink: 0,
+                              borderRadius: '16px',
+                              background: interestOption.color,
+                              border: '1px solid #dddddd',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxSizing: 'border-box',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: '36px',
+                                height: '36px',
+                                border: '1.5px solid #a0a0a0',
+                                borderRadius: '2px',
+                              }}
+                            />
+                          </div>
+
+                          <span
+                            style={{
+                              fontSize: '17px',
+                              fontWeight: '600',
+                              color: '#000000',
+                            }}
+                          >
+                            {interestOption.label}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            width: '16px',
+                            height: '16px',
+                            flexShrink: 0,
+                            borderRadius: '50%',
+                            border: isSelected
+                              ? '2px solid #ffbc00'
+                              : '2px solid #d2d2d2',
+                            background: isSelected ? '#ffbc00' : '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {isSelected && (
+                            <div
+                              style={{
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                background: '#ffffff',
+                              }}
+                            />
+                          )}
                         </div>
                       </div>
                     );
@@ -1560,18 +1706,35 @@ export default function AuthPage({ onAuth }) {
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(255, 255, 255, 0.98)', 
+                background: 'rgba(255, 255, 255, 0.98)',
                 zIndex: 101,
                 display: 'flex',
                 flexDirection: 'column',
-                alignItems: 'center',
-                padding: '60px 40px 40px 40px',
+                alignItems: 'stretch',
+                padding: '62px 20px 12px',
                 boxSizing: 'border-box'
               }}>
-                <h1 style={{ ...S.title, marginBottom: '40px' }}>Select birthdate</h1>
+                <h1 style={{
+                  ...S.title,
+                  textAlign: 'center',
+                  margin: '0 0 118px',
+                  fontSize: '27px'
+                }}>
+                  Select birthdate
+                </h1>
 
-                {/* Molette de sélection iOS : défilement rotatif avec snap */}
-                <div style={{ ...S.wheelPickerContainer, height: `${WHEEL_HEIGHT}px`, width: '100%' }}>
+                {/* Molette de sélection iOS : plus grande et centrée */}
+                <div style={{
+                  ...S.wheelPickerContainer,
+                  height: `${WHEEL_HEIGHT}px`,
+                  width: '92%',
+                  maxWidth: '650px',
+                  alignSelf: 'center',
+                  gap: '70px',
+                  margin: '0 auto',
+                  transform: 'scale(1.16)',
+                  transformOrigin: 'center center'
+                }}>
                   <div style={{ ...S.wheelActiveBar, height: `${WHEEL_ITEM_HEIGHT}px` }} />
 
                   {/* Colonne Mois */}
@@ -1580,7 +1743,8 @@ export default function AuthPage({ onAuth }) {
                     selectedIndex={MONTHS.indexOf(tempMonth)}
                     onSelectIndex={(i) => setTempMonth(MONTHS[i])}
                     renderItem={(m) => m}
-                    width={130}
+                    width={150}
+                    fontScale={1.12}
                   />
 
                   {/* Colonne Jours */}
@@ -1589,7 +1753,8 @@ export default function AuthPage({ onAuth }) {
                     selectedIndex={DAYS.indexOf(tempDay)}
                     onSelectIndex={(i) => setTempDay(DAYS[i])}
                     renderItem={(d) => d}
-                    width={60}
+                    width={72}
+                    fontScale={1.12}
                   />
 
                   {/* Colonne Années */}
@@ -1598,15 +1763,49 @@ export default function AuthPage({ onAuth }) {
                     selectedIndex={YEARS.indexOf(tempYear)}
                     onSelectIndex={(i) => setTempYear(YEARS[i])}
                     renderItem={(y) => y}
-                    width={80}
+                    width={105}
+                    fontScale={1.12}
                   />
                 </div>
 
-                <div style={S.pickerFooter}>
-                  <button onClick={() => setIsBirthdatePickerOpen(false)} style={{ ...S.pickerBtn, color: '#007aff' }}>
+                <div style={{
+                  ...S.pickerFooter,
+                  width: '100%',
+                  maxWidth: 'none',
+                  marginTop: 'auto',
+                  paddingBottom: '0',
+                  gap: '108px'
+                }}>
+                  <button
+                    onClick={() => setIsBirthdatePickerOpen(false)}
+                    style={{
+                      ...S.pickerBtn,
+                      flex: 1,
+                      height: '30px',
+                      padding: '0 18px',
+                      color: '#007aff',
+                      fontSize: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #dedede',
+                      background: '#f7f7f7'
+                    }}
+                  >
                     Cancel
                   </button>
-                  <button onClick={saveBirthdate} style={{ ...S.pickerBtn, color: '#000000' }}>
+                  <button
+                    onClick={saveBirthdate}
+                    style={{
+                      ...S.pickerBtn,
+                      flex: 1,
+                      height: '30px',
+                      padding: '0 18px',
+                      color: '#000000',
+                      fontSize: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #dedede',
+                      background: '#f7f7f7'
+                    }}
+                  >
                     NEXT
                   </button>
                 </div>
@@ -1618,37 +1817,84 @@ export default function AuthPage({ onAuth }) {
               <div style={{
                 position: 'absolute',
                 inset: 0,
-                background: 'rgba(255, 255, 255, 0.98)', 
+                background: 'rgba(255, 255, 255, 0.98)',
                 zIndex: 101,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                padding: '60px 40px 40px 40px',
+                padding: '62px 34px 12px',
                 boxSizing: 'border-box'
               }}>
-                <h1 style={{ ...S.title, marginBottom: '40px' }}>Select language</h1>
+                <h1 style={{
+                  ...S.title,
+                  fontSize: '28px',
+                  margin: '0',
+                  lineHeight: 1.2
+                }}>
+                  Select language
+                </h1>
 
-                {/* Molette des codes de pays : défilement rotatif avec snap (pas de barre centrale sur cet écran, conforme à la maquette) */}
-                <div style={{ ...S.wheelPickerContainer, height: `${WHEEL_HEIGHT}px`, width: '220px' }}>
+                {/* Sélecteur de langue agrandi et recentré comme sur la maquette */}
+                <div style={{
+                  ...S.wheelPickerContainer,
+                  width: '300px',
+                  height: '440px',
+                  margin: '74px 0 0',
+                  flexShrink: 0
+                }}>
                   <WheelColumn
                     items={COUNTRY_CODES}
                     selectedIndex={COUNTRY_CODES.findIndex((c) => c.code === tempCountry)}
                     onSelectIndex={(i) => setTempCountry(COUNTRY_CODES[i].code)}
                     renderItem={(item) => (
                       <>
-                        <span>{item.code}</span>
-                        <span style={{ fontSize: '24px' }}>{item.flag}</span>
+                        <span style={{ minWidth: '58px', textAlign: 'right' }}>{item.code}</span>
+                        <span style={{ fontSize: '38px', lineHeight: 1 }}>{item.flag}</span>
                       </>
                     )}
-                    width={180}
+                    width={250}
+                    fontScale={1.35}
                   />
                 </div>
 
-                <div style={S.pickerFooter}>
-                  <button onClick={() => setIsCountryCodePickerOpen(false)} style={{ ...S.pickerBtn, color: '#007aff' }}>
+                <div style={{
+                  ...S.pickerFooter,
+                  width: '100%',
+                  maxWidth: 'none',
+                  marginTop: 'auto',
+                  paddingBottom: '0',
+                  gap: '160px'
+                }}>
+                  <button
+                    onClick={() => setIsCountryCodePickerOpen(false)}
+                    style={{
+                      ...S.pickerBtn,
+                      flex: 1,
+                      height: '34px',
+                      padding: '0 18px',
+                      color: '#007aff',
+                      fontSize: '11px',
+                      borderRadius: '6px',
+                      border: '1px solid #dedede',
+                      background: '#f7f7f7'
+                    }}
+                  >
                     Cancel
                   </button>
-                  <button onClick={saveCountryCode} style={{ ...S.pickerBtn, color: '#000000' }}>
+                  <button
+                    onClick={saveCountryCode}
+                    style={{
+                      ...S.pickerBtn,
+                      flex: 1,
+                      height: '34px',
+                      padding: '0 18px',
+                      color: '#000000',
+                      fontSize: '11px',
+                      borderRadius: '6px',
+                      border: '1px solid #dedede',
+                      background: '#f7f7f7'
+                    }}
+                  >
                     NEXT
                   </button>
                 </div>
