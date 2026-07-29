@@ -518,6 +518,7 @@ export default function AuthPage({ onAuth }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showPasswordSuggestion, setShowPasswordSuggestion] = useState(false);
 
   // Écrans de transition de l'inscription
   const [isProcessing, setIsProcessing] = useState(false);
@@ -646,6 +647,25 @@ export default function AuthPage({ onAuth }) {
     setResetCode('');
     setNewResetPassword('');
     setUseFaceIdForPassword(false);
+  };
+
+  // Génère un mot de passe fort côté front-end, sans besoin de backend
+  const generateStrongPassword = (closeAfter = true) => {
+    const length = 14;
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*-_';
+    const randomValues = new Uint32Array(length);
+    window.crypto.getRandomValues(randomValues);
+
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += charset[randomValues[i] % charset.length];
+    }
+
+    setPassword(result);
+    setConfirmPassword(result);
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+    if (closeAfter) setShowPasswordSuggestion(false);
   };
 
   const renderStepper = () => (
@@ -1281,6 +1301,8 @@ style={{
                         placeholder="Password" 
                         value={password} 
                         onChange={(e) => setPassword(e.target.value)} 
+                        onFocus={() => setShowPasswordSuggestion(true)}
+                        onBlur={() => setTimeout(() => setShowPasswordSuggestion(false), 150)}
                       />
                       <div 
                         onClick={() => setShowPassword(!showPassword)}
@@ -1298,6 +1320,61 @@ style={{
                           userSelect: 'none'
                         }}
                       />
+
+                      {/* Suggestion façon Safari : "Use a strong password" + régénération */}
+                      {showPasswordSuggestion && (
+                        <div
+                          onMouseDown={(e) => e.preventDefault()}
+                          style={{
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            right: 0,
+                            background: '#ffffff',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                            zIndex: 50,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div
+                            onClick={() => generateStrongPassword(true)}
+                            style={{
+                              background: '#3f7de0',
+                              color: '#ffffff',
+                              padding: '10px 14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '13px',
+                              fontWeight: '500',
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              border: '1.5px solid #ffffff',
+                              borderRadius: '3px',
+                              flexShrink: 0,
+                            }} />
+                            Use a strong password
+                          </div>
+
+                          <div
+                            onClick={() => generateStrongPassword(false)}
+                            style={{
+                              padding: '10px 14px',
+                              fontSize: '13px',
+                              color: '#333333',
+                              cursor: 'pointer',
+                              borderTop: '1px solid #eeeeee',
+                            }}
+                          >
+                            Suggest a new password
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Input Confirm Password */}
