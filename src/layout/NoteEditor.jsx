@@ -1,5 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { COLOR_PALETTES } from '../App';
+import bas1 from './bas1.png';
+import bas2 from './bas2.png';
+import bas3 from './bas3.png';
 
 const LINK_SUGGESTIONS = [
   {
@@ -196,6 +199,7 @@ export default function NoteEditor({
     }} />
   );
 
+
   // ── Rendu note principale ─────────────────────────────────────────────────
   const renderMainStickyNote = () => {
     if (!note) return null;
@@ -309,6 +313,7 @@ export default function NoteEditor({
     );
   };
 
+  
   // ── Rendu carte supplémentaire ────────────────────────────────────────────
   const renderGroupCard = (card, subIdx) => {
     const pal = activePal;
@@ -384,7 +389,7 @@ export default function NoteEditor({
         <div className="rel">
           <button onClick={(e) => { e.stopPropagation(); toggle('aa'); }} title="Police"
             style={{ background: openDD === 'aa' ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 12px', cursor: 'pointer' }}>
-            <span style={{ fontWeight: '500', fontSize: '15px', color: '#444' }}>Aa</span>
+            <span style={{ fontWeight: '500', fontSize: '15px', color: '#857f7f' }}>Aa</span>
           </button>
           {openDD === 'aa' && (
             <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '6px', background: 'rgba(235,235,235,0.95)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '12px', boxShadow: '0 12px 35px rgba(0,0,0,0.15)', zIndex: 9999, width: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -434,7 +439,7 @@ export default function NoteEditor({
         <div className="rel">
           <button onClick={() => toggle('list')} title="Create a list"
             style={{ background: openDD === 'list' ? '#dcdcdc' : 'transparent', borderRadius: '4px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
-            <i className="fa-solid fa-list-ul" style={{ fontSize: '15px', color: '#444' }}></i>
+            <i className="fa-solid fa-list-ul" style={{ fontSize: '15px', color: '#857f7f' }}></i>
           </button>
           {openDD === 'list' && (
             <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '4px', background: 'rgba(238,238,238,0.94)', backdropFilter: 'blur(25px)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '230px', display: 'flex', gap: '6px' }}>
@@ -452,7 +457,7 @@ export default function NoteEditor({
                     onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.4)'}>
                     {item.els.map((bullet, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
-                        <span style={{ fontSize: '8px', color: '#444', minWidth: '8px', textAlign: 'center' }}>{bullet}</span>
+                        <span style={{ fontSize: '8px', color: '#857f7f', minWidth: '8px', textAlign: 'center' }}>{bullet}</span>
                         <div style={{ height: '1.5px', background: '#aaa', flex: 1 }} />
                       </div>
                     ))}
@@ -469,18 +474,23 @@ export default function NoteEditor({
             title={note?.tables?.length > 0 ? 'Remove table' : 'Add a table'}
             style={{ background: note?.tables?.length > 0 ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
             <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
-              <rect x="0.5" y="0.5" width="17" height="13" rx="1.5" stroke="#444" strokeWidth="1"/>
-              <line x1="9" y1="0.5" x2="9" y2="13.5" stroke="#444" strokeWidth="1"/>
-              <line x1="0.5" y1="7" x2="17.5" y2="7" stroke="#444" strokeWidth="1"/>
+              <rect x="0.5" y="0.5" width="17" height="13" rx="1.5" stroke="#857f7f" strokeWidth="1"/>
+              <line x1="9" y1="0.5" x2="9" y2="13.5" stroke="#857f7f" strokeWidth="1"/>
+              <line x1="0.5" y1="7" x2="17.5" y2="7" stroke="#857f7f" strokeWidth="1"/>
             </svg>
           </button>
         </div>
 
         {/* ── IMAGE / MEDIA ── */}
         <div className="rel">
-          <button onClick={() => toggle('media')} title="open your device's photo browser" className={openDD === 'media' ? 'active' : ''}>
-            <i className="fa-regular fa-image"></i>
-          </button>
+          {/* IMAGE / MEDIA */}
+<button
+  onClick={() => toggle('media')}
+  title="Open your device's photo browser"
+  className={`toolbar-light-icon ${openDD === 'media' ? 'active' : ''}`}
+>
+  <i className="fa-regular fa-image"></i>
+</button>
           {openDD === 'media' && (
             <div className="media-dropdown" onClick={(e) => e.stopPropagation()}>
               <button className="media-item media-item-top" onClick={() => { setMediaModal(true); setMediaTab('photos'); closeAll(); }}>Photos &amp; Videos</button>
@@ -496,9 +506,13 @@ export default function NoteEditor({
 
         {/* ── LIEN ── */}
         <div className="rel">
-          <button onClick={() => toggle('link')} title="Add a link." className={openDD === 'link' ? 'active' : ''}>
-            <i className="fa-solid fa-link"></i>
-          </button>
+          <button
+  onClick={() => toggle('link')}
+  title="Add a link"
+  className={`toolbar-light-icon ${openDD === 'link' ? 'active' : ''}`}
+>
+  <i className="fa-solid fa-link"></i>
+</button>
           {openDD === 'link' && (
             <div className="link-dropdown" onClick={(e) => e.stopPropagation()}>
               <div className="link-dropdown-title">Add a link to the app</div>
@@ -507,7 +521,7 @@ export default function NoteEditor({
                   <div key={s.id} className="link-suggestion-row">
                     <div className="link-suggestion-left">
                       <div className="link-favicon-wrap">
-                        {s.type === 'youtube' ? <i className="fa-brands fa-youtube" style={{ color: '#FF0000', fontSize: '18px' }}></i> : <i className="fa-solid fa-globe" style={{ color: '#555', fontSize: '14px' }}></i>}
+                        {s.type === 'youtube' ? <i className="fa-brands fa-youtube" style={{ color: '#FF0000', fontSize: '18px' }}></i> : <i className="fa-solid fa-globe" style={{ color: '#857f7f', fontSize: '14px' }}></i>}
                       </div>
                       <div className="link-suggestion-text">
                         <div className="link-suggestion-title">{s.title}</div>
@@ -532,9 +546,20 @@ export default function NoteEditor({
 
         {/* ── LOCK ── */}
         <div className="rel">
-          <button className={openDD === 'lock' || note?.isLocked ? 'active' : ''} onClick={() => toggle('lock')} title="Verrouiller">
-            <i className={`fa-solid ${note?.isLocked ? 'fa-lock' : 'fa-lock-open'}`}></i>
-          </button>
+          {/* LOCK */}
+<button
+  onClick={() => toggle('lock')}
+  title="Verrouiller"
+  className={`toolbar-light-icon ${
+    openDD === 'lock' || note?.isLocked ? 'active' : ''
+  }`}
+>
+  <i
+    className={`fa-solid ${
+      note?.isLocked ? 'fa-lock' : 'fa-lock-open'
+    }`}
+  ></i>
+</button>
           {openDD === 'lock' && (
             <div className="lock-dropdown">
               <button className="lock-item" onClick={handleLockToggleAction}>{note?.isLocked ? 'Unlock this note' : 'Lock this note'}</button>
@@ -545,9 +570,13 @@ export default function NoteEditor({
 
         {/* ── PARTAGER ── */}
         <div className="rel">
-          <button onClick={() => toggle('share')} title="Partager">
-            <i className="fa-solid fa-arrow-up-from-bracket"></i>
-          </button>
+          <button
+  onClick={() => toggle('share')}
+  title="Partager"
+  className={`toolbar-light-icon ${openDD === 'share' ? 'active' : ''}`}
+>
+  <i className="fa-solid fa-arrow-up-from-bracket"></i>
+</button>
           {openDD === 'share' && (
             <div className="share-dropdown" onClick={(e) => e.stopPropagation()}>
               <div className="share-header">
@@ -582,22 +611,39 @@ export default function NoteEditor({
         </div>
 
         {/* ── RECHERCHE ── */}
-        {/* FIX : le bouton loupe garde toujours sa taille fixe dans le flux
-            flex normal. Quand searchOpen est true, le champ + dropdown sont
-            positionnés en absolute (position: 'absolute', right: 0) donc ils
-            se superposent visuellement sans jamais élargir la largeur réelle
-            de la barre d'outils — les autres icônes ne bougent plus et ne
-            disparaissent plus. */}
-        <div className="search-wrapper rel" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* La recherche passe avant Verrouiller et Partager grâce à order: 1.
+            Sa largeur animée pousse réellement ces deux boutons vers la droite
+            sans les masquer lorsque le champ s'ouvre. */}
+        <div className="search-wrapper rel" style={{
+          order: 1,
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          width: searchOpen ? '250px' : '36px',
+          minWidth: searchOpen ? '250px' : '36px',
+          marginLeft: '-4px',
+          transition: 'width 0.3s ease, min-width 0.3s ease',
+          flexShrink: 0,
+        }}>
           <button title="Search" onClick={(e) => { e.stopPropagation(); if (searchOpen) { closeAll(); } else { closeAll(); setSearchOpen(true); } }}
-            style={{ background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', borderRadius: '5px' }}
+            style={{
+  background: 'transparent',
+  border: 'none',
+  padding: '6px 10px',
+  cursor: 'pointer',
+  borderRadius: '5px',
+  opacity: searchOpen ? 0 : 1,
+  visibility: searchOpen ? 'hidden' : 'visible',
+  pointerEvents: searchOpen ? 'none' : 'auto',
+  transition: 'opacity 0.15s ease',
+}}
             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-            <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '16px', color: '#444' }}></i>
+            <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '16px', color: '#857f7f' }}></i>
           </button>
 
           {searchOpen && (
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '50%', right: '0', transform: 'translateY(-50%)', zIndex: 10000 }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '50%', left: '0', transform: 'translateY(-50%)', zIndex: 10000 }}>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                 <input type="text" placeholder="Search" autoFocus value={mediaSearch} onChange={(e) => setMediaSearch(e.target.value)}
                   style={{ width: '240px', height: '26px', background: 'rgba(235,235,235,0.6)', border: '1.5px solid #ff9500', borderRadius: '6px', padding: '0 28px 0 10px', fontSize: '13px', outline: 'none' }} />
@@ -641,7 +687,7 @@ export default function NoteEditor({
         </div>
       </div>
 
-      {/* ═══ FOOTER + BOUTONS BAS (sur la même ligne) ════════════════════ */}
+       {/* ═══ FOOTER + BOUTONS BAS (sur la même ligne) ════════════════════ */}
       <div className="editor-bottom" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '14px 20px', background: '#fff', borderTop: '1px solid #e5e7eb' }}>
 
         {/* Champ titre — visible seulement quand il y a des cartes groupées */}
@@ -667,22 +713,90 @@ export default function NoteEditor({
           />
         )}
 
-        {/* + orange : ajoute une carte */}
-        <button className="btn-round yellow" onClick={addGroupCard} title="Add more notes on the same doc">
-          <i className="fa-solid fa-plus"></i>
+        {/* Image jaune : ajoute une carte */}
+        <button
+          type="button"
+          onClick={addGroupCard}
+          title="Add more notes on the same doc"
+          aria-label="Ajouter une carte"
+          style={{
+            width: '62px',
+            height: '62px',
+            padding: 0,
+            border: 'none',
+            borderRadius: '10px',
+            background: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={bas1}
+            alt=""
+            aria-hidden="true"
+            style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+          />
         </button>
 
-        {/* - rouge : supprime la dernière carte */}
-        <button className="btn-round red" onClick={removeLastGroupCard} title="Remove last note">
-          <i className="fa-solid fa-minus"></i>
+        {/* Image rouge : supprime la dernière carte */}
+        <button
+          type="button"
+          onClick={removeLastGroupCard}
+          title="Remove last note"
+          aria-label="Supprimer la dernière carte"
+          style={{
+            width: '62px',
+            height: '62px',
+            padding: 0,
+            border: 'none',
+            borderRadius: '10px',
+            background: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={bas2}
+            alt=""
+            aria-hidden="true"
+            style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+          />
         </button>
 
-        {/* vert : ouvre la modal pour renommer */}
-        <button className="btn-round teal" onClick={openRenameModal} title="Rename this group of cards">
-          <i className="fa-regular fa-copy"></i>
+        {/* Image verte : ouvre la modal pour renommer */}
+        <button
+          type="button"
+          onClick={openRenameModal}
+          title="Rename this group of cards"
+          aria-label="Renommer le groupe de cartes"
+          style={{
+            width: '62px',
+            height: '62px',
+            padding: 0,
+            border: 'none',
+            borderRadius: '10px',
+            background: '#ffffff',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden',
+          }}
+        >
+          <img
+            src={bas3}
+            alt=""
+            aria-hidden="true"
+            style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }}
+          />
         </button>
       </div>
-
       {/* ═══ MODAL RENOMMAGE ═════════════════════════════════════════════ */}
       {isRenameModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>

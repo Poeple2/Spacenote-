@@ -1,105 +1,257 @@
 import React from 'react';
 import { COLOR_PALETTES } from '../App';
 
+/* Importation des images générées */
+import plusIcon from './icones plus.png';
+import trashIcon from './icone trash.png';
+
+
 export default function NoteList({
-  notes,          // C'est maintenant ton tableau de groupes de cartes
+  notes,
   setNotes,
   selectedId,
   setSelectedId,
   selectedFolder,
-  groupTitle,     // Le titre général (ex: "Today")
+  groupTitle,
   onOpenGroupModal,
 }) {
-  
-  // Filtrage des groupes selon le dossier de l'espace de travail
   const visibleNotes =
     selectedFolder === 'all'
       ? notes
-      : notes.filter((n) => n.folder === 'Notes');
+      : notes.filter((note) => note.folder === 'Notes');
 
-  // ACTION : Créer un tout nouveau groupe indépendant de cartes
- const addNote = () => {
-  const id = Date.now();
-  const newGroup = {
-    id,
-    title: 'Untitled',
-    color: 'Yellow',
-    date: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-    folder: 'Notes',
-    // On instancie un tout nouveau tableau à chaque création
-    cards: [
-      { id: Date.now() + 1, subtitle: 'Untitled', text: 'Start a note...' }
-    ],
-    tables: [],
-    links: [],
-    images: []
+  /* Créer un nouveau groupe */
+  const addNote = () => {
+    const id = Date.now();
+
+    const newGroup = {
+      id,
+      title: 'Untitled',
+      color: 'Yellow',
+      date: new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
+      folder: 'Notes',
+      cards: [
+        {
+          id: id + 1,
+          subtitle: 'Untitled',
+          text: 'Start a note...',
+        },
+      ],
+      tables: [],
+      links: [],
+      images: [],
+    };
+
+    setNotes((previousNotes) => [
+      newGroup,
+      ...previousNotes,
+    ]);
+
+    setSelectedId(id);
   };
-  setNotes((prev) => [newGroup, ...prev]);
-  setSelectedId(id);
-};
 
-  // ACTION : Supprimer le groupe entier sélectionné
+  /* Supprimer le groupe sélectionné */
   const deleteNote = () => {
-    setNotes((prev) => {
-      const next = prev.filter((n) => n.id !== selectedId);
-      setSelectedId(next.length ? next[0].id : null);
-      return next;
+    if (!selectedId) return;
+
+    setNotes((previousNotes) => {
+      const nextNotes = previousNotes.filter(
+        (note) => note.id !== selectedId
+      );
+
+      setSelectedId(
+        nextNotes.length > 0
+          ? nextNotes[0].id
+          : null
+      );
+
+      return nextNotes;
     });
   };
 
   return (
     <div className="note-list">
       <div className="note-list-header">
-        {/* Titre de l'espace actuel en haut à gauche de la liste */}
+        {/* Titre de l’espace */}
         <span
           className="note-list-header-title"
-          style={{ cursor: 'pointer', flex: 1 }}
+          style={{
+            cursor: 'pointer',
+            flex: 1,
+          }}
           onClick={onOpenGroupModal}
           title="Cliquer pour nommer cet espace"
         >
           {groupTitle || 'Today'}
         </span>
-        
-        <div className="note-list-header-btns">
-          {/* Bouton (+) en haut de la liste pour créer un NOUVEAU groupe vide */}
-          <button className="note-header-btn" title="New group of cards" onClick={addNote}>
-            <i className="fa-solid fa-plus"></i>
+
+        {/* Boutons Ajouter et Supprimer */}
+        <div
+          className="note-list-header-btns"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          {/* Bouton d’ajout */}
+          <button
+            type="button"
+            className="note-header-btn"
+            title="Créer un nouveau groupe"
+            aria-label="Créer un nouveau groupe"
+            onClick={addNote}
+            style={{
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '2px',
+              cursor: 'pointer',
+              overflow: 'hidden',
+              transition: 'background 0.2s ease',
+            }}
+            onMouseEnter={(event) => {
+              event.currentTarget.style.background =
+                '#e8e8e8';
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.background =
+                'transparent';
+            }}
+          >
+            <img
+              src={plusIcon}
+              alt=""
+              draggable="false"
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'block',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            />
           </button>
-          {/* Bouton Poubelle pour supprimer le groupe entier */}
-          <button className="note-header-btn" title="Delete group" onClick={deleteNote}>
-            <i className="fa-solid fa-trash"></i>
+
+          {/* Bouton de suppression */}
+          <button
+            type="button"
+            className="note-header-btn"
+            title="Supprimer le groupe"
+            aria-label="Supprimer le groupe"
+            onClick={deleteNote}
+            disabled={!selectedId}
+            style={{
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              padding: 0,
+              background: 'transparent',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: selectedId
+                ? 'pointer'
+                : 'not-allowed',
+              opacity: selectedId ? 1 : 0.35,
+              overflow: 'hidden',
+              transition:
+                'background 0.2s ease, opacity 0.2s ease',
+            }}
+            onMouseEnter={(event) => {
+              if (selectedId) {
+                event.currentTarget.style.background =
+                  '#ffe5e5';
+              }
+            }}
+            onMouseLeave={(event) => {
+              event.currentTarget.style.background =
+                'transparent';
+            }}
+          >
+            <img
+              src={trashIcon}
+              alt=""
+              draggable="false"
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'block',
+                objectFit: 'contain',
+                pointerEvents: 'none',
+                userSelect: 'none',
+              }}
+            />
           </button>
         </div>
       </div>
 
+      {/* Liste des groupes */}
       <div id="note-list-body">
         {visibleNotes.map((group) => {
-          const pal = COLOR_PALETTES[group.color] || COLOR_PALETTES['Yellow'];
-          
-          // On récupère le texte de la toute première carte du groupe pour l'aperçu
-          const firstCardText = group.cards && group.cards.length > 0 
-            ? group.cards[0].text 
-            : 'No new text';
+          const palette =
+            COLOR_PALETTES[group.color] ||
+            COLOR_PALETTES.Yellow;
+
+          const firstCardText =
+            group.cards && group.cards.length > 0
+              ? group.cards[0].text
+              : 'No new text';
 
           return (
             <div
               key={group.id}
-              className={`note-card${group.id === selectedId ? ' active' : ''}`}
-              style={{ background: group.id === selectedId ? pal.body : '' }}
-              onClick={() => setSelectedId(group.id)} // Charge le groupe au clic
+              className={`note-card${
+                group.id === selectedId
+                  ? ' active'
+                  : ''
+              }`}
+              style={{
+                background:
+                  group.id === selectedId
+                    ? palette.body
+                    : '',
+              }}
+              onClick={() => setSelectedId(group.id)}
             >
-              {/* Affiche le titre personnalisé du groupe (ex: People Inc Project 2025) */}
-              <div className="note-card-title">{group.title}</div>
-              
-              <div className="note-card-info">
-                <span className="time">{group.date}</span>
-                {/* L'aperçu dynamique basé sur la première carte */}
-                <span className="preview">{firstCardText.slice(0, 18)}...</span>
-                <i className="fa-solid fa-droplet status-icon" style={{ color: pal.header }}></i>
+              <div className="note-card-title">
+                {group.title}
               </div>
-              
+
+              <div className="note-card-info">
+                <span className="time">
+                  {group.date}
+                </span>
+
+                <span className="preview">
+                  {firstCardText.slice(0, 18)}
+                  {firstCardText.length > 18
+                    ? '...'
+                    : ''}
+                </span>
+
+                <i
+                  className="fa-solid fa-droplet status-icon"
+                  style={{
+                    color: palette.header,
+                  }}
+                />
+              </div>
+
               <div className="note-card-folder">
-                <i className="fa-regular fa-folder"></i>
+                <i className="fa-regular fa-folder" />
                 <span>Notes</span>
               </div>
             </div>

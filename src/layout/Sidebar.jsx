@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 
 export default function Sidebar({
@@ -6,6 +7,7 @@ export default function Sidebar({
   setSelectedFolder,
   viewMode,
   setViewMode,
+  onCloseSidebar,
 }) {
   const [folders, setFolders] = useState([
     { id: 'all',   label: 'MySpace (All)' },
@@ -74,20 +76,75 @@ export default function Sidebar({
         {/* Ligne du haut : point vert + boutons vue */}
         <div className="sidebar-top-row">
           <div className="green-dot" />
-          <div className="view-icons">
+          <div
+            className="view-icons"
+            style={{
+              position: 'relative',
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Fond noir animé qui glisse entre Liste et Grille */}
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                top: '4px',
+                bottom: '4px',
+                left: viewMode === 'grid' ? '50%' : '4px',
+                width: 'calc(50% - 4px)',
+                borderRadius: '12px',
+                background: '#757575',
+                boxShadow: '0 2px 5px rgba(164, 164, 164, 0.25)',
+                transition: 'left 280ms cubic-bezier(0.22, 1, 0.36, 1)',
+                pointerEvents: 'none',
+                zIndex: 0,
+              }}
+            />
+
             <button
-              className={`view-btn${viewMode === 'list' ? ' active' : ''}`}
+              className="view-btn"
               title="List view"
               onClick={() => setViewMode('list')}
+              aria-pressed={viewMode === 'list'}
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                background: 'transparent',
+                boxShadow: 'none',
+                transition: 'color 180ms ease, transform 180ms ease',
+                color: viewMode === 'list' ? '#ffffff' : '#3f3f46',
+                transform: viewMode === 'list' ? 'scale(1.04)' : 'scale(1)',
+              }}
             >
-              <i className="fa-solid fa-list"></i>
+              <i
+                className="fa-solid fa-list"
+                style={{ color: viewMode === 'list' ? '#ffffff' : '#3f3f46' }}
+              ></i>
             </button>
             <button
-              className={`view-btn${viewMode === 'grid' ? ' active' : ''}`}
-              title="Grid view"
-              onClick={() => setViewMode('grid')}
+              className="view-btn"
+              title="Masquer la barre latérale"
+              onClick={() => {
+                setViewMode('grid');
+                onCloseSidebar?.();
+              }}
+              aria-pressed={viewMode === 'grid'}
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                background: 'transparent',
+                boxShadow: 'none',
+                transition: 'color 180ms ease, transform 180ms ease',
+                color: viewMode === 'grid' ? '#ffffff' : '#3f3f46',
+                transform: viewMode === 'grid' ? 'scale(1.04)' : 'scale(1)',
+              }}
             >
-              <i className="fa-solid fa-grip"></i>
+              <i
+                className="fa-solid fa-grip"
+                style={{ color: viewMode === 'grid' ? '#ffffff' : '#3f3f46' }}
+              ></i>
             </button>
           </div>
         </div>

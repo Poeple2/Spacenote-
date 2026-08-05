@@ -7,7 +7,6 @@ import SplashScreen from './layout/SplashScreen';
 import AuthPage from './layout/AuthPage';
 import './styles/layout.css';
 
-// ─── Palettes de couleurs ────────────────────────────────────────────────────
 export const COLOR_PALETTES = {
   'Noir':          { header: '#000000', body: '#F2F2F7', text: '#FFFFFF', darkText: '#000000' },
   'Red':           { header: '#FF3B30', body: '#FFE5E5', text: '#FFFFFF', darkText: '#000000' },
@@ -22,32 +21,30 @@ export const COLOR_PALETTES = {
   'Purple':        { header: '#800080', body: '#F7EFFF', text: '#FFFFFF', darkText: '#000000' },
 };
 
-// ─── Données initiales ───────────────────────────────────────────────────────
 const INITIAL_NOTES = [
   {
     id: 1,
-    title: 'Fidélité — Principes',
-    text: 'La fidélité est un acte de volonté autant que de sentiment. Elle se construit chaque jour dans les petits choix.',
-    color: 'Blue',
+    title: 'spacenote',
+    text: '',
+    color: 'yellow',
     date: '20/02/25',
     folder: 'Notes',
   },
 ];
 
 function App() {
-  // ── Phase : 'splash' → 'auth' → 'app' ────────────────────────────────────
   const [phase, setPhase] = useState('splash');
-
-  // ── État principal (identique à ton App original) ─────────────────────────
-  const [notes, setNotes]                   = useState(INITIAL_NOTES);
-  const [selectedId, setSelectedId]         = useState(1);
+  const [notes, setNotes] = useState(INITIAL_NOTES);
+  const [selectedId, setSelectedId] = useState(1);
   const [selectedFolder, setSelectedFolder] = useState('all');
-  const [viewMode, setViewMode]             = useState('list');
+  const [viewMode, setViewMode] = useState('list');
 
-  // ── Groupe / espace de notes ──────────────────────────────────────────────
-  const [groupTitle, setGroupTitle]             = useState('');
+  // Contrôle l'animation Apple Notes de toute la Sidebar.
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
+  const [groupTitle, setGroupTitle] = useState('');
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [tempGroupTitle, setTempGroupTitle]     = useState('');
+  const [tempGroupTitle, setTempGroupTitle] = useState('');
 
   const handleSaveGroupTitle = () => {
     if (tempGroupTitle.trim()) setGroupTitle(tempGroupTitle.trim());
@@ -59,28 +56,39 @@ function App() {
     setIsGroupModalOpen(true);
   };
 
-  // ── Phase 1 : Splash ──────────────────────────────────────────────────────
   if (phase === 'splash') {
     return <SplashScreen onDone={() => setPhase('auth')} />;
   }
 
-  // ── Phase 2 : Auth ────────────────────────────────────────────────────────
   if (phase === 'auth') {
     return <AuthPage onAuth={() => setPhase('app')} />;
   }
 
-  // ── Phase 3 : Application principale (ton App original) ───────────────────
   return (
     <div className="app-container" id="app">
       <div className="main-body">
+        <div className={`sidebar-shell${isSidebarOpen ? '' : ' is-closed'}`}>
+          <Sidebar
+            notes={notes}
+            selectedFolder={selectedFolder}
+            setSelectedFolder={setSelectedFolder}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            onCloseSidebar={() => setIsSidebarOpen(false)}
+          />
+        </div>
 
-        <Sidebar
-          notes={notes}
-          selectedFolder={selectedFolder}
-          setSelectedFolder={setSelectedFolder}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-        />
+        {!isSidebarOpen && (
+          <button
+            type="button"
+            className="sidebar-reopen-btn"
+            onClick={() => setIsSidebarOpen(true)}
+            title="Afficher la barre latérale"
+            aria-label="Afficher la barre latérale"
+          >
+            <i className="fa-solid fa-grip"></i>
+          </button>
+        )}
 
         <NoteList
           notes={notes}
@@ -102,12 +110,10 @@ function App() {
           setGroupTitle={setGroupTitle}
           onOpenGroupModal={openGroupModal}
         />
-
       </div>
 
       <StatusBar />
 
-      {/* ═══ MODAL NOMMER L'ESPACE ════════════════════════════════════════ */}
       {isGroupModalOpen && (
         <div
           style={{
