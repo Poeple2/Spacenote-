@@ -3,3 +3,9 @@ dist
 .env
 
 .DS_Store
+
+# Variables Supabase locales
+.env
+.env.local
+.env.*
+!.env.example

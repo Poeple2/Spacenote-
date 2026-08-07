@@ -711,7 +711,10 @@ export default function AuthPage({ onAuth }) {
           <button onClick={() => setMode('signin')} style={S.btnYellow}>
             CONTINUE
           </button>
-          
+          <div style={{ marginTop: '28px', display: 'flex', alignItems: 'center', gap: '10px', color: '#86868b', fontSize: '14px', fontWeight: '600' }}>
+            <i className="fa-solid fa-lock" style={{ fontSize: '18px' }}></i>
+            <span>End-to-end encrypted</span>
+          </div>
         </div>
       </div>
     );
@@ -830,9 +833,9 @@ export default function AuthPage({ onAuth }) {
           }}>
             <div style={{ position: 'absolute', width: '260px', height: '260px', borderRadius: '50%', border: '1.5px solid #dcdcdc' }} />
             <div style={{
-              width: '80px',
-              height: '80px',
-              border: '2px solid #00b956',
+              width: '120px',
+              height: '120px',
+              border: '3px solid #00b956',
               background: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -843,7 +846,7 @@ export default function AuthPage({ onAuth }) {
                 aria-hidden="true"
                 style={{
                   color: '#00b956',
-                  fontSize: '58px',
+                  fontSize: '86px',
                   fontWeight: '800',
                   lineHeight: 1,
                   transform: 'translateY(-3px)'
