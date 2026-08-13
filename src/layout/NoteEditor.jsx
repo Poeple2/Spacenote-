@@ -26,6 +26,28 @@ const LIST_PREFIXES = {
 
 const LIST_PREFIX_PATTERN = /^(?:[•◦◆→✓☐☑]\s+|\d+\.\s+)/;
 
+const DEFAULT_TEXT_FORMAT = {
+  bold: false,
+  italic: false,
+  underline: false,
+  strike: false,
+  style: 'body',
+  fontFamily: 'Arial, sans-serif',
+  fontSize: 15,
+  color: '#000000',
+  backgroundColor: 'transparent',
+  align: 'left',
+};
+
+const FONT_OPTIONS = [
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Times New Roman', value: '"Times New Roman", serif' },
+  { label: 'Courier New', value: '"Courier New", monospace' },
+  { label: 'Monaco', value: 'Monaco, monospace' },
+];
+
 const bytesToBase64 = (bytes) => {
   let binary = '';
   bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
@@ -190,6 +212,40 @@ export default function NoteEditor({
       if (updatedCards[0]) updatedCards[0] = { ...updatedCards[0], text: value };
       return { ...currentNote, text: value, cards: updatedCards };
     }));
+  };
+
+  const mainTextFormat = {
+    ...DEFAULT_TEXT_FORMAT,
+    ...(note?.cards?.[0]?.format || {}),
+  };
+
+  const updateMainTextFormat = (patch) => {
+    setNotes((previousNotes) => previousNotes.map((currentNote) => {
+      if (currentNote.id !== selectedId) return currentNote;
+      const updatedCards = [...(currentNote.cards || [])];
+      const firstCard = updatedCards[0] || {
+        id: crypto.randomUUID(),
+        subtitle: currentNote.title || 'Untitled',
+        text: currentNote.text || '',
+      };
+      updatedCards[0] = {
+        ...firstCard,
+        format: {
+          ...DEFAULT_TEXT_FORMAT,
+          ...(firstCard.format || {}),
+          ...patch,
+        },
+      };
+      return { ...currentNote, cards: updatedCards };
+    }));
+  };
+
+  const setTextStyle = (styleName) => {
+    if (styleName === 'monospace') {
+      updateMainTextFormat({ style: styleName, fontFamily: '"Courier New", monospace' });
+      return;
+    }
+    updateMainTextFormat({ style: styleName });
   };
 
   const removeListFormatting = (text) => text
@@ -634,7 +690,28 @@ export default function NoteEditor({
               <textarea
                 value={mainText || ''}
                 placeholder="Start a note..."
-                style={{ color: pal.darkText, width: '100%', height: (note.tables || []).length > 0 ? '80px' : '220px', minHeight: (note.tables || []).length > 0 ? '80px' : '120px', background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: '15px', lineHeight: 1.6, fontFamily: 'inherit' }}
+                style={{
+                  color: mainTextFormat.color || pal.darkText,
+                  width: '100%',
+                  height: (note.tables || []).length > 0 ? '80px' : '220px',
+                  minHeight: (note.tables || []).length > 0 ? '80px' : '120px',
+                  background: mainTextFormat.backgroundColor || 'transparent',
+                  border: 'none',
+                  borderLeft: mainTextFormat.style === 'quote' ? '3px solid #ff9500' : 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  paddingLeft: mainTextFormat.style === 'quote' ? '12px' : '0',
+                  fontSize: `${mainTextFormat.fontSize}px`,
+                  lineHeight: 1.6,
+                  fontFamily: mainTextFormat.fontFamily,
+                  fontWeight: mainTextFormat.bold ? '700' : '400',
+                  fontStyle: mainTextFormat.italic ? 'italic' : 'normal',
+                  textDecoration: [
+                    mainTextFormat.underline ? 'underline' : '',
+                    mainTextFormat.strike ? 'line-through' : '',
+                  ].filter(Boolean).join(' ') || 'none',
+                  textAlign: mainTextFormat.align,
+                }}
                 onChange={(e) => updateMainText(e.target.value)}
                 onKeyDown={handleListEnter}
               />
@@ -812,44 +889,73 @@ export default function NoteEditor({
             <span style={{ fontWeight: '500', fontSize: '15px', color: '#857f7f' }}>Aa</span>
           </button>
           {openDD === 'aa' && (
-            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '6px', background: 'rgba(235,235,235,0.95)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '12px', boxShadow: '0 12px 35px rgba(0,0,0,0.15)', zIndex: 9999, width: '180px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: '6px', background: 'rgba(235,235,235,0.97)', backdropFilter: 'blur(25px)', borderRadius: '16px', padding: '12px', boxShadow: '0 12px 35px rgba(0,0,0,0.15)', zIndex: 9999, width: '220px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 4px' }}>
-                {[['B','bold','normal','none'],['I','normal','italic','none'],['U','normal','normal','underline'],['S','normal','normal','line-through']].map(([l,fw,fs,td]) => (
-                  <button key={l} style={{ background: 'transparent', border: 'none', fontSize: '15px', fontWeight: fw, fontStyle: fs, textDecoration: td, color: '#000', cursor: 'pointer', width: '24px' }}>{l}</button>
+                {[
+                  { label: 'B', field: 'bold', active: mainTextFormat.bold, style: { fontWeight: '700' } },
+                  { label: 'I', field: 'italic', active: mainTextFormat.italic, style: { fontStyle: 'italic' } },
+                  { label: 'U', field: 'underline', active: mainTextFormat.underline, style: { textDecoration: 'underline' } },
+                  { label: 'S', field: 'strike', active: mainTextFormat.strike, style: { textDecoration: 'line-through' } },
+                ].map((control) => (
+                  <button key={control.field} type="button"
+                    aria-pressed={control.active}
+                    onClick={() => updateMainTextFormat({ [control.field]: !control.active })}
+                    style={{ background: control.active ? '#fff' : 'transparent', border: 'none', borderRadius: '5px', fontSize: '15px', color: '#000', cursor: 'pointer', width: '32px', height: '28px', ...control.style }}>
+                    {control.label}
+                  </button>
                 ))}
               </div>
               <div style={{ height: '1px', background: 'rgba(0,0,0,0.06)' }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                <span style={{ fontSize: '10px', color: '#8e8e93' }}>✓</span><span style={{ fontWeight: '600' }}>Body</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                <span style={{ width: '10px' }}></span><span style={{ fontFamily: 'Courier New, monospace' }}>Monostyle</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', padding: '2px 4px' }}>
-                <span style={{ width: '10px' }}></span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <div style={{ width: '3px', height: '12px', background: '#ff9500', borderRadius: '1px' }} />
-                  <span>Quote block</span>
-                </div>
-              </div>
+              {[
+                { value: 'body', label: 'Body' },
+                { value: 'monospace', label: 'Monostyle' },
+                { value: 'quote', label: 'Quote block' },
+              ].map((textStyle) => (
+                <button key={textStyle.value} type="button" onClick={() => setTextStyle(textStyle.value)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', fontSize: '12px', padding: '5px 6px', border: 'none', borderRadius: '5px', background: mainTextFormat.style === textStyle.value ? '#fff' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ width: '12px', color: '#007aff' }}>{mainTextFormat.style === textStyle.value ? '✓' : ''}</span>
+                  {textStyle.value === 'quote' && <span style={{ width: '3px', height: '14px', background: '#ff9500', borderRadius: '1px' }} />}
+                  <span style={{ fontFamily: textStyle.value === 'monospace' ? '"Courier New", monospace' : 'inherit' }}>{textStyle.label}</span>
+                </button>
+              ))}
               <div style={{ position: 'relative' }}>
-                <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none', cursor: 'pointer' }}>
-                  <option>Posterama</option><option>Helvetica</option><option>Georgia</option>
+                <select value={mainTextFormat.fontFamily} onChange={(e) => updateMainTextFormat({ fontFamily: e.target.value })}
+                  style={{ width: '100%', height: '28px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', padding: '0 24px 0 8px', outline: 'none', cursor: 'pointer' }}>
+                  {FONT_OPTIONS.map((font) => <option key={font.label} value={font.value}>{font.label}</option>)}
                 </select>
-                <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
               </div>
               <div style={{ display: 'flex', gap: '6px' }}>
-                <div style={{ position: 'relative', width: '50px' }}>
-                  <select style={{ width: '100%', height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', appearance: 'none', outline: 'none' }}>
-                    <option>8</option><option>10</option><option>12</option><option>14</option><option>16</option>
+                <div style={{ position: 'relative', width: '62px' }}>
+                  <select value={mainTextFormat.fontSize} onChange={(e) => updateMainTextFormat({ fontSize: Number(e.target.value) })}
+                    style={{ width: '100%', height: '28px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', fontSize: '12px', paddingLeft: '6px', outline: 'none' }}>
+                    {[8, 10, 12, 14, 15, 16, 18, 20, 24, 28, 32].map((size) => <option key={size} value={size}>{size}</option>)}
                   </select>
-                  <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
                 </div>
-                <div style={{ position: 'relative', flex: 1, height: '22px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 6px', gap: '4px' }}>
+                <label title="Couleur du texte" style={{ position: 'relative', flex: 1, height: '28px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', gap: '6px', cursor: 'pointer' }}>
                   <span style={{ fontSize: '11px', fontWeight: '700' }}>A</span>
-                  <div style={{ width: '12px', height: '12px', background: '#000', borderRadius: '2px', marginLeft: 'auto', marginRight: '10px' }} />
-                  <div style={{ position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)', fontSize: '5px', color: '#ff9500', pointerEvents: 'none' }}>▲▼</div>
-                </div>
+                  <span style={{ width: '15px', height: '15px', background: mainTextFormat.color, borderRadius: '3px', marginLeft: 'auto', border: '1px solid #ddd' }} />
+                  <input type="color" value={mainTextFormat.color} onChange={(e) => updateMainTextFormat({ color: e.target.value })} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
+                </label>
+                <label title="Surlignage" style={{ position: 'relative', flex: 1, height: '28px', background: '#fff', border: '1px solid rgba(0,0,0,0.12)', borderRadius: '6px', display: 'flex', alignItems: 'center', padding: '0 8px', cursor: 'pointer' }}>
+                  <i className="fa-solid fa-highlighter" style={{ fontSize: '11px' }} />
+                  <span style={{ width: '15px', height: '15px', background: mainTextFormat.backgroundColor === 'transparent' ? '#fff7cc' : mainTextFormat.backgroundColor, borderRadius: '3px', marginLeft: 'auto', border: '1px solid #ddd' }} />
+                  <input type="color" value={mainTextFormat.backgroundColor === 'transparent' ? '#fff7cc' : mainTextFormat.backgroundColor} onChange={(e) => updateMainTextFormat({ backgroundColor: e.target.value })} style={{ position: 'absolute', opacity: 0, inset: 0, cursor: 'pointer' }} />
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {[
+                  ['left', 'fa-align-left'], ['center', 'fa-align-center'],
+                  ['right', 'fa-align-right'], ['justify', 'fa-align-justify'],
+                ].map(([align, icon]) => (
+                  <button key={align} type="button" onClick={() => updateMainTextFormat({ align })}
+                    style={{ flex: 1, height: '28px', border: 'none', borderRadius: '5px', background: mainTextFormat.align === align ? '#fff' : 'transparent', cursor: 'pointer', color: '#555' }}>
+                    <i className={`fa-solid ${icon}`} />
+                  </button>
+                ))}
+                <button type="button" title="Supprimer la mise en forme" onClick={() => updateMainTextFormat(DEFAULT_TEXT_FORMAT)}
+                  style={{ width: '32px', height: '28px', border: 'none', borderRadius: '5px', background: 'transparent', cursor: 'pointer', color: '#777' }}>
+                  <i className="fa-solid fa-eraser" />
+                </button>
               </div>
             </div>
           )}
