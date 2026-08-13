@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
-import { COLOR_PALETTES } from '../App';
+import { useEffect, useState, useRef } from 'react';
+import { COLOR_PALETTES } from '../constants/colors';
+import { supabase } from '../lib/supabase';
 import bas1 from './bas1.png';
 import bas2 from './bas2.png';
 import bas3 from './bas3.png';
@@ -13,21 +14,123 @@ const LINK_SUGGESTIONS = [
   },
 ];
 
+const LIST_PREFIXES = {
+  disc: '• ',
+  circle: '◦ ',
+  num: '1. ',
+  diamond: '◆ ',
+  arrow: '→ ',
+  check: '☐ ',
+  checkmark: '✓ ',
+};
+
+const LIST_PREFIX_PATTERN = /^(?:[•◦◆→✓☐☑]\s+|\d+\.\s+)/;
+
+const bytesToBase64 = (bytes) => {
+  let binary = '';
+  bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+  return window.btoa(binary);
+};
+
+const base64ToBytes = (value) => {
+  const binary = window.atob(value);
+  return Uint8Array.from(binary, (character) => character.charCodeAt(0));
+};
+
+const createPasswordSalt = () => {
+  const salt = new Uint8Array(16);
+  window.crypto.getRandomValues(salt);
+  return bytesToBase64(salt);
+};
+
+const derivePasswordHash = async (passwordValue, saltValue) => {
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(passwordValue),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const derivedBits = await window.crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: base64ToBytes(saltValue),
+      iterations: 210000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+  return bytesToBase64(new Uint8Array(derivedBits));
+};
+
+const hashesMatch = (firstHash, secondHash) => {
+  if (!firstHash || !secondHash || firstHash.length !== secondHash.length) return false;
+  let difference = 0;
+  for (let index = 0; index < firstHash.length; index += 1) {
+    difference |= firstHash.charCodeAt(index) ^ secondHash.charCodeAt(index);
+  }
+  return difference === 0;
+};
+
 export default function NoteEditor({
-  notes, setNotes, selectedId, setSelectedId,
-  groupTitle, setGroupTitle, onOpenGroupModal,
+  notes, setNotes, selectedId,
 }) {
   const [openDD, setOpenDD]           = useState(null);
   const [searchOpen, setSearchOpen]   = useState(false);
   const [lockStep, setLockStep]       = useState(null);
   const [password, setPassword]       = useState('');
+  const [lockMode, setLockMode]       = useState('custom');
+  const [lockError, setLockError]     = useState('');
+  const [lockBusy, setLockBusy]       = useState(false);
+  const [showLockPassword, setShowLockPassword] = useState(false);
   const [linkInput, setLinkInput]     = useState('');
+  const [linkError, setLinkError]     = useState('');
+  const [listTypesByNote, setListTypesByNote] = useState({});
   const [mediaModal, setMediaModal]   = useState(false);
   const [mediaTab, setMediaTab]       = useState('photos');
   const [selectedImg, setSelectedImg] = useState(null);
   const [mediaSearch, setMediaSearch] = useState('');
+  const [mediaAssets, setMediaAssets] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
   const [tableCtxMenu, setTableCtxMenu] = useState(null);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (!mediaModal) return undefined;
+    let cancelled = false;
+
+    const loadMediaAssets = async () => {
+      setMediaLoading(true);
+      const { data, error } = await supabase
+        .from('media_assets')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (cancelled) return;
+      if (error) {
+        console.error('Impossible de charger la médiathèque :', error);
+        setMediaAssets([]);
+        setMediaLoading(false);
+        return;
+      }
+
+      const assetsWithUrls = await Promise.all((data || []).map(async (asset) => {
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('note-images')
+          .createSignedUrl(asset.path, 3600);
+        return { ...asset, src: signedError ? '' : signedData.signedUrl };
+      }));
+
+      if (!cancelled) {
+        setMediaAssets(assetsWithUrls);
+        setMediaLoading(false);
+      }
+    };
+
+    loadMediaAssets();
+    return () => { cancelled = true; };
+  }, [mediaModal]);
 
   // ── Modal renommage interne ──────────────────────────────────────────────
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -36,6 +139,17 @@ export default function NoteEditor({
   const note        = notes.find((n) => n.id === selectedId);
   const activePal   = note ? (COLOR_PALETTES[note.color] || COLOR_PALETTES['Yellow']) : COLOR_PALETTES['Yellow'];
   const additionalCards = note && note.cards ? note.cards.slice(1) : [];
+  const currentMainText = note?.cards?.[0]?.text ?? note?.text ?? '';
+  const firstMainLine = currentMainText.split('\n')[0] || '';
+  const detectedListType = Object.entries(LIST_PREFIXES).find(([type, prefix]) => (
+    type === 'num' ? /^\d+\.\s/.test(firstMainLine) : firstMainLine.startsWith(prefix)
+  ))?.[0] || null;
+  const activeListType = Object.prototype.hasOwnProperty.call(listTypesByNote, selectedId)
+    ? listTypesByNote[selectedId]
+    : detectedListType;
+  const setActiveListType = (value) => {
+    setListTypesByNote((previousTypes) => ({ ...previousTypes, [selectedId]: value }));
+  };
 
   // ── Taille adaptative des cartes ─────────────────────────────────────────
   const totalCards = note && note.cards ? note.cards.length : 1;
@@ -69,23 +183,74 @@ export default function NoteEditor({
   };
 
   // ── Liste ─────────────────────────────────────────────────────────────────
+  const updateMainText = (value) => {
+    setNotes((previousNotes) => previousNotes.map((currentNote) => {
+      if (currentNote.id !== selectedId) return currentNote;
+      const updatedCards = [...(currentNote.cards || [])];
+      if (updatedCards[0]) updatedCards[0] = { ...updatedCards[0], text: value };
+      return { ...currentNote, text: value, cards: updatedCards };
+    }));
+  };
+
+  const removeListFormatting = (text) => text
+    .split('\n')
+    .map((line) => line.replace(LIST_PREFIX_PATTERN, ''))
+    .join('\n');
+
+  const disableList = () => {
+    if (!note) return;
+    const currentText = note.cards?.[0]?.text ?? note.text ?? '';
+    updateMainText(removeListFormatting(currentText));
+    setActiveListType(null);
+    closeAll();
+  };
+
   const insertList = (type) => {
     if (!note) return;
-    const prefixes = {
-      disc: '• Item 1\n• Item 2\n• Item 3', circle: '◦ Item 1\n◦ Item 2\n◦ Item 3',
-      num: '1. Item 1\n2. Item 2\n3. Item 3', diamond: '◆ Item 1\n◆ Item 2\n◆ Item 3',
-      arrow: '→ Item 1\n→ Item 2\n→ Item 3', check: '☑ Item 1\n☑ Item 2\n☑ Item 3',
-      checkmark: '✓ Item 1\n✓ Item 2\n✓ Item 3',
-    };
-    const sep = note.text.trim() ? '\n\n' : '';
-    updateNote({ text: note.text + sep + (prefixes[type] || '') });
+    if (type === 'none') {
+      disableList();
+      return;
+    }
+
+    const prefix = LIST_PREFIXES[type];
+    const currentText = removeListFormatting(note.cards?.[0]?.text ?? note.text ?? '');
+    const lines = currentText ? currentText.split('\n') : [''];
+    const formattedText = lines.map((line, index) => (
+      type === 'num' ? `${index + 1}. ${line}` : `${prefix}${line}`
+    )).join('\n');
+
+    updateMainText(formattedText);
+    setActiveListType(type);
     closeAll();
+  };
+
+  const handleListEnter = (event) => {
+    if (event.key !== 'Enter' || !activeListType) return;
+    event.preventDefault();
+
+    const textarea = event.currentTarget;
+    const selectionStart = textarea.selectionStart;
+    const selectionEnd = textarea.selectionEnd;
+    const currentText = textarea.value;
+    const beforeCursor = currentText.slice(0, selectionStart);
+    const afterCursor = currentText.slice(selectionEnd);
+    const nextNumber = beforeCursor.split('\n').length + 1;
+    const nextPrefix = activeListType === 'num'
+      ? `${nextNumber}. `
+      : LIST_PREFIXES[activeListType];
+    const newText = `${beforeCursor}\n${nextPrefix}${afterCursor}`;
+    const newCursorPosition = selectionStart + nextPrefix.length + 1;
+
+    updateMainText(newText);
+    requestAnimationFrame(() => {
+      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+    });
   };
 
   // ── Tableau ───────────────────────────────────────────────────────────────
   const insertTable = (rows, cols) => {
     if (!note) return;
-    const newTable = { id: Date.now(), rows, cols, data: Array.from({ length: rows }, () => Array(cols).fill('')) };
+    const newTable = { id: crypto.randomUUID(), rows, cols, data: Array.from({ length: rows }, () => Array(cols).fill('')) };
     updateNote({ tables: [...(note.tables || []), newTable] });
     closeAll();
   };
@@ -110,46 +275,181 @@ export default function NoteEditor({
     const tables = (note.tables || []).map((t) => (t.id !== tableId || t.cols <= 1) ? t : { ...t, cols: t.cols - 1, data: t.data.map((row) => row.filter((_, ci) => ci !== colIdx)) });
     updateNote({ tables }); setTableCtxMenu(null);
   };
-  const tableAddRow = (tableId) => {
-    const tables = (note.tables || []).map((t) => t.id !== tableId ? t : { ...t, rows: t.rows + 1, data: [...t.data, Array(t.cols).fill('')] });
-    updateNote({ tables });
+  const tableAddRowBefore = (tableId, rowIdx) => {
+    const tables = (note.tables || []).map((t) => t.id !== tableId ? t : {
+      ...t,
+      rows: t.rows + 1,
+      data: [...t.data.slice(0, rowIdx), Array(t.cols).fill(''), ...t.data.slice(rowIdx)],
+    });
+    updateNote({ tables }); setTableCtxMenu(null);
+  };
+  const tableAddRowAfter = (tableId, rowIdx) => {
+    const tables = (note.tables || []).map((t) => t.id !== tableId ? t : {
+      ...t,
+      rows: t.rows + 1,
+      data: [...t.data.slice(0, rowIdx + 1), Array(t.cols).fill(''), ...t.data.slice(rowIdx + 1)],
+    });
+    updateNote({ tables }); setTableCtxMenu(null);
+  };
+  const tableDeleteRow = (tableId, rowIdx) => {
+    const tables = (note.tables || []).map((t) => (t.id !== tableId || t.rows <= 1) ? t : {
+      ...t,
+      rows: t.rows - 1,
+      data: t.data.filter((_, index) => index !== rowIdx),
+    });
+    updateNote({ tables }); setTableCtxMenu(null);
   };
 
   // ── Media ─────────────────────────────────────────────────────────────────
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (!file || !note) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      updateNote({ images: [...(note.images || []), { id: Date.now(), src: ev.target.result, name: file.name }] });
-      setMediaModal(false); setSelectedImg(null);
-    };
-    reader.readAsDataURL(file);
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    if (!isImage && !isVideo) {
+      window.alert('Veuillez sélectionner une image ou une vidéo.');
+      event.target.value = '';
+      return;
+    }
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      window.alert('Vous devez être connecté pour ajouter un média.');
+      event.target.value = '';
+      return;
+    }
+
+    const assetId = crypto.randomUUID();
+    const safeFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const mediaPath = `${user.id}/${assetId}-${safeFileName}`;
+    const { error: uploadError } = await supabase.storage
+      .from('note-images')
+      .upload(mediaPath, file, { contentType: file.type, cacheControl: '3600', upsert: false });
+
+    if (uploadError) {
+      window.alert(`Le média n'a pas pu être envoyé : ${uploadError.message}`);
+      event.target.value = '';
+      return;
+    }
+
+    const { data: insertedAsset, error: insertError } = await supabase
+      .from('media_assets')
+      .insert({ id: assetId, user_id: user.id, name: file.name, path: mediaPath, mime_type: file.type, size: file.size })
+      .select()
+      .single();
+
+    if (insertError) {
+      await supabase.storage.from('note-images').remove([mediaPath]);
+      window.alert(`Le média n'a pas pu être enregistré : ${insertError.message}`);
+      event.target.value = '';
+      return;
+    }
+
+    const { data: signedData, error: signedError } = await supabase.storage
+      .from('note-images')
+      .createSignedUrl(mediaPath, 3600);
+    if (signedError) {
+      window.alert("Le média a été envoyé, mais il ne peut pas être affiché.");
+      event.target.value = '';
+      return;
+    }
+
+    const newAsset = { ...insertedAsset, src: signedData.signedUrl };
+    setMediaAssets((previousAssets) => [newAsset, ...previousAssets]);
+    setSelectedImg(newAsset);
+    setMediaTab(isVideo ? 'videos' : 'photos');
+    setMediaModal(true);
+    setOpenDD(null);
+    event.target.value = '';
   };
 
   const insertSelectedImg = () => {
     if (!selectedImg || !note) return;
-    updateNote({ images: [...(note.images || []), { id: Date.now(), src: selectedImg.src, name: selectedImg.name }] });
+    updateNote({ images: [...(note.images || []), {
+      id: crypto.randomUUID(), assetId: selectedImg.id, name: selectedImg.name,
+      path: selectedImg.path, mime_type: selectedImg.mime_type, src: selectedImg.src,
+    }] });
     setMediaModal(false); setSelectedImg(null);
   };
 
   // ── Lien ──────────────────────────────────────────────────────────────────
-  const insertLink = (s) => {
+  const normalizeUrl = (value) => {
+    const trimmedValue = value.trim();
+    if (!trimmedValue) return null;
+
+    try {
+      const url = new URL(
+        /^https?:\/\//i.test(trimmedValue) ? trimmedValue : `https://${trimmedValue}`
+      );
+      if (!['http:', 'https:'].includes(url.protocol)) return null;
+      return url.toString();
+    } catch {
+      return null;
+    }
+  };
+
+  const getYoutubeId = (url) => {
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.hostname.includes('youtu.be')) {
+        return parsedUrl.pathname.split('/').filter(Boolean)[0] || null;
+      }
+      if (parsedUrl.hostname.includes('youtube.com')) {
+        return parsedUrl.searchParams.get('v')
+          || parsedUrl.pathname.match(/\/(?:shorts|embed)\/([^/?]+)/)?.[1]
+          || null;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
+  const insertLink = (link) => {
     if (!note) return;
-    updateNote({ links: [...(note.links || []), s] });
-    closeAll(); setLinkInput('');
+    const normalizedUrl = normalizeUrl(link.url);
+    if (!normalizedUrl) {
+      setLinkError('Veuillez saisir une adresse valide.');
+      return;
+    }
+
+    const linkAlreadyExists = (note.links || []).some(
+      (existingLink) => normalizeUrl(existingLink.url) === normalizedUrl
+    );
+    if (linkAlreadyExists) {
+      setLinkError('Ce lien est déjà présent dans cette note.');
+      return;
+    }
+
+    updateNote({
+      links: [
+        ...(note.links || []),
+        { ...link, id: crypto.randomUUID(), url: normalizedUrl },
+      ],
+    });
+    setLinkError('');
+    setLinkInput('');
+    closeAll();
   };
 
   const insertCustomLink = () => {
-    if (!note || !linkInput.trim()) return;
-    const isYT = linkInput.includes('youtube.com') || linkInput.includes('youtu.be');
-    let ytId = null;
-    if (isYT) { const m = linkInput.match(/(?:v=|youtu\.be\/)([^&?/]+)/); if (m) ytId = m[1]; }
+    if (!note) return;
+    const normalizedUrl = normalizeUrl(linkInput);
+    if (!normalizedUrl) {
+      setLinkError('Veuillez saisir une adresse valide, par exemple https://example.com.');
+      return;
+    }
+
+    const youtubeId = getYoutubeId(normalizedUrl);
+    const parsedUrl = new URL(normalizedUrl);
     insertLink({
-      id: Date.now(), title: linkInput, source: 'Manuel', url: linkInput, type: isYT ? 'youtube' : 'web',
-      thumbnail: ytId ? `https://img.youtube.com/vi/${ytId}/mqdefault.jpg` : null,
-      siteName: (() => { try { return new URL(linkInput.startsWith('http') ? linkInput : `https://${linkInput}`).hostname; } catch { return linkInput; } })(),
-      description: linkInput,
+      title: parsedUrl.hostname,
+      source: 'Manuel',
+      url: normalizedUrl,
+      type: youtubeId ? 'youtube' : 'web',
+      thumbnail: youtubeId ? `https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg` : null,
+      siteName: parsedUrl.hostname.replace(/^www\./, ''),
+      description: normalizedUrl,
     });
   };
 
@@ -158,7 +458,7 @@ export default function NoteEditor({
     setNotes((prev) =>
       prev.map((n) =>
         n.id === selectedId
-          ? { ...n, cards: [...(n.cards || [{ id: n.id, subtitle: n.title, text: n.text }]), { id: Date.now(), subtitle: 'Untitled', text: '' }] }
+          ? { ...n, cards: [...(n.cards || [{ id: n.id, subtitle: n.title, text: n.text }]), { id: crypto.randomUUID(), subtitle: 'Untitled', text: '' }] }
           : n
       )
     );
@@ -176,16 +476,90 @@ export default function NoteEditor({
 
   // ── Lock ──────────────────────────────────────────────────────────────────
   const handleLockToggleAction = () => {
-    if (note?.isLocked) { setLockStep('password-input'); } else { setLockStep('options'); }
+    setPassword('');
+    setLockError('');
+    setShowLockPassword(false);
+
+    if (note?.isLocked) {
+      setLockMode('unlock');
+      setLockStep('password-input');
+    } else if (note?.lockPasswordHash && note?.lockPasswordSalt) {
+      updateNote({ isLocked: true });
+      setLockStep(null);
+    } else {
+      setLockStep('options');
+    }
     setOpenDD(null);
   };
-  const handleLockNote = () => {
-    if (!password.trim()) return;
-    updateNote({ isLocked: !note?.isLocked });
-    setLockStep(null); setPassword(''); closeAll();
+
+  const handleLockNote = async () => {
+    if (!note || lockBusy) return;
+    if (password.length < 6) {
+      setLockError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+
+    setLockBusy(true);
+    setLockError('');
+
+    try {
+      if (note.isLocked || lockMode === 'unlock') {
+        if (!note.lockPasswordHash || !note.lockPasswordSalt) {
+          setLockError('Cette ancienne note ne possède pas encore de mot de passe sécurisé.');
+          return;
+        }
+        const candidateHash = await derivePasswordHash(password, note.lockPasswordSalt);
+        if (!hashesMatch(candidateHash, note.lockPasswordHash)) {
+          setLockError('Mot de passe incorrect.');
+          return;
+        }
+        updateNote({ isLocked: false });
+      } else {
+        if (lockMode === 'session') {
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          const email = userData?.user?.email;
+          if (userError || !email) {
+            setLockError('Impossible de vérifier votre session.');
+            return;
+          }
+          const { error: sessionPasswordError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+          if (sessionPasswordError) {
+            setLockError('Le mot de passe de session est incorrect.');
+            return;
+          }
+        }
+
+        const salt = createPasswordSalt();
+        const passwordHash = await derivePasswordHash(password, salt);
+        updateNote({
+          isLocked: true,
+          lockPasswordHash: passwordHash,
+          lockPasswordSalt: salt,
+        });
+      }
+
+      setLockStep(null);
+      setPassword('');
+      setShowLockPassword(false);
+      closeAll();
+    } catch (error) {
+      console.error('Erreur pendant le verrouillage :', error);
+      setLockError('Une erreur est survenue. Veuillez réessayer.');
+    } finally {
+      setLockBusy(false);
+    }
   };
-  const handleUnlockAll = () => {
-    setNotes((prev) => prev.map((n) => ({ ...n, isLocked: false }))); closeAll();
+
+  const handleCloseAllLockedNotes = () => {
+    setNotes((previousNotes) => previousNotes.map((currentNote) => (
+      currentNote.lockPasswordHash && currentNote.lockPasswordSalt
+        ? { ...currentNote, isLocked: true }
+        : currentNote
+    )));
+    closeAll();
   };
 
   // ── Coin plié ─────────────────────────────────────────────────────────────
@@ -207,25 +581,30 @@ export default function NoteEditor({
     const mainText = note.cards && note.cards[0] ? note.cards[0].text : note.text;
 
     return (
-      <div className="sticky-note" style={{ background: pal.body, width: CARD_WIDTH, minHeight: CARD_MIN_HEIGHT, flex: '0 0 auto', position: 'relative', borderRadius: '6px', boxShadow: '0 3px 8px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column' }}>
+      <div className="sticky-note" style={{ background: pal.body, width: CARD_WIDTH, minHeight: CARD_MIN_HEIGHT, flex: '0 0 auto', position: 'relative', borderRadius: '6px', boxShadow: '0 3px 8px rgba(0,0,0,0.12)', display: 'flex', flexDirection: 'column', overflow: 'visible', clipPath: 'none' }}>
         <div className="sticky-header-bar" style={{ background: pal.header, color: pal.text, fontWeight: 800, fontSize: '20px', padding: '22px 20px', textAlign: 'center', borderBottom: '2px solid rgba(0,0,0,0.12)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {note.isLocked ? '🔒 Contenu Protégé' : note.title}
         </div>
-        <div className="sticky-body" style={{ padding: '18px 20px', flex: 1 }}>
+        <div className="sticky-body" style={{ padding: '18px 20px', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'visible' }}>
           {note.isLocked ? (
             <div className="lock-masked-screen">
               <i className="fa-solid fa-lock lock-masked-icon"></i>
               <p className="lock-masked-text">Cette note est protégée.</p>
-              <button className="btn-lock-yellow" style={{ width: 'auto', padding: '8px 20px', marginTop: '10px' }} onClick={() => setLockStep('password-input')}>
+              <button className="btn-lock-yellow" style={{ width: 'auto', padding: '8px 20px', marginTop: '10px' }} onClick={() => { setLockMode('unlock'); setPassword(''); setLockError(''); setLockStep('password-input'); }}>
                 Saisir le mot de passe
               </button>
             </div>
           ) : (
             <>
-              {(note.images || []).map((img) => (
-                <div key={img.id} className="note-image-block">
-                  <img src={img.src} alt={img.name} />
-                  <button className="note-image-remove" onClick={() => updateNote({ images: (note.images || []).filter((i) => i.id !== img.id) })}>✕</button>
+              {(note.images || []).map((media) => (
+                <div key={media.id} className="note-image-block">
+                  {media.mime_type?.startsWith('video/') ? (
+                    <video src={media.src} controls playsInline preload="metadata"
+                      style={{ width: '100%', maxHeight: '260px', objectFit: 'contain', borderRadius: '6px' }} />
+                  ) : (
+                    <img src={media.src} alt={media.name} />
+                  )}
+                  <button className="note-image-remove" onClick={() => updateNote({ images: (note.images || []).filter((i) => i.id !== media.id) })}>✕</button>
                 </div>
               ))}
               {(note.links || []).map((lnk) => (
@@ -237,8 +616,16 @@ export default function NoteEditor({
                     </div>
                   )}
                   <div className="link-preview-info">
-                    <div className="link-preview-desc">{lnk.description}</div>
-                    <div className="link-preview-site">{lnk.siteName}</div>
+                    <a
+                      href={normalizeUrl(lnk.url) || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Ouvrir le lien dans un nouvel onglet"
+                      style={{ color: 'inherit', textDecoration: 'none', display: 'block' }}
+                    >
+                      <div className="link-preview-desc">{lnk.description}</div>
+                      <div className="link-preview-site">{lnk.siteName}</div>
+                    </a>
                   </div>
                   <div className="link-preview-bar" style={{ background: pal.header }} />
                   <button className="link-preview-remove" onClick={() => updateNote({ links: (note.links || []).filter((l) => l.id !== lnk.id) })}>✕</button>
@@ -247,55 +634,88 @@ export default function NoteEditor({
               <textarea
                 value={mainText || ''}
                 placeholder="Start a note..."
-                style={{ color: pal.darkText, width: '100%', minHeight: '120px', background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: '15px', lineHeight: 1.6, fontFamily: 'inherit' }}
-                onChange={(e) => {
-                  setNotes((prev) => prev.map((n) => {
-                    if (n.id !== selectedId) return n;
-                    const updatedCards = [...(n.cards || [])];
-                    if (updatedCards[0]) updatedCards[0] = { ...updatedCards[0], text: e.target.value };
-                    return { ...n, text: e.target.value, cards: updatedCards };
-                  }));
-                }}
+                style={{ color: pal.darkText, width: '100%', height: (note.tables || []).length > 0 ? '80px' : '220px', minHeight: (note.tables || []).length > 0 ? '80px' : '120px', background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: '15px', lineHeight: 1.6, fontFamily: 'inherit' }}
+                onChange={(e) => updateMainText(e.target.value)}
+                onKeyDown={handleListEnter}
               />
               {(note.tables || []).map((tbl) => (
-                <div key={tbl.id} className="note-table-wrapper" style={{ position: 'relative', margin: '10px 0' }}>
+                <div key={tbl.id} className="note-table-wrapper" style={{ position: 'relative', order: -1, margin: '4px 0 12px', padding: '20px 0 0 20px', flexShrink: 0 }}>
+                  {Array.from({ length: tbl.cols }).map((_, ci) => {
+                    const isActive = tableCtxMenu?.tableId === tbl.id && tableCtxMenu?.type === 'column' && tableCtxMenu?.index === ci;
+                    return (
+                      <button
+                        key={`column-${ci}`}
+                        type="button"
+                        className="col-handle"
+                        aria-label={`Options de la colonne ${ci + 1}`}
+                        onClick={(e) => { e.stopPropagation(); setTableCtxMenu({ tableId: tbl.id, type: 'column', index: ci }); }}
+                        style={{
+                          position: 'absolute', top: 0,
+                          left: `calc(20px + ${(ci / tbl.cols) * 100}% - ${(ci / tbl.cols) * 20}px)`,
+                          width: `calc(${100 / tbl.cols}% - ${20 / tbl.cols}px)`, height: '20px',
+                          padding: 0, border: 'none', borderRadius: '5px 5px 0 0',
+                          background: isActive ? '#ffb800' : 'transparent', color: isActive ? '#fff' : '#b8b8b8',
+                          cursor: 'pointer', fontSize: '15px', lineHeight: 1,
+                        }}
+                      >•••</button>
+                    );
+                  })}
+                  {Array.from({ length: tbl.rows }).map((_, ri) => {
+                    const isActive = tableCtxMenu?.tableId === tbl.id && tableCtxMenu?.type === 'row' && tableCtxMenu?.index === ri;
+                    return (
+                      <button
+                        key={`row-${ri}`}
+                        type="button"
+                        className="row-handle"
+                        aria-label={`Options de la ligne ${ri + 1}`}
+                        onClick={(e) => { e.stopPropagation(); setTableCtxMenu({ tableId: tbl.id, type: 'row', index: ri }); }}
+                        style={{
+                          position: 'absolute', left: 0,
+                          top: `calc(20px + ${(ri / tbl.rows) * 100}% - ${(ri / tbl.rows) * 20}px)`,
+                          width: '20px', height: `calc(${100 / tbl.rows}% - ${20 / tbl.rows}px)`,
+                          padding: 0, border: 'none', borderRadius: '5px 0 0 5px',
+                          background: isActive ? '#ffb800' : 'transparent', color: isActive ? '#fff' : '#b8b8b8',
+                          cursor: 'pointer', fontSize: '14px', lineHeight: 0.55,
+                          writingMode: 'vertical-rl',
+                        }}
+                      >•••</button>
+                    );
+                  })}
                   <table className="note-table" style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'fixed' }}>
-                    <thead>
-                      <tr>
-                        {tbl.data[0].map((_, ci) => (
-                          <th key={ci} style={{ position: 'relative', padding: 0, border: '1px solid #bbb' }}>
-                            <div className="col-handle" onClick={(e) => { e.stopPropagation(); setTableCtxMenu({ tableId: tbl.id, colIndex: ci }); }}
-                              style={{ background: tableCtxMenu?.tableId === tbl.id && tableCtxMenu?.colIndex === ci ? '#FF9500' : '#e0e0e0', cursor: 'pointer', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#555' }}>···</div>
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
                     <tbody>
                       {tbl.data.map((row, ri) => (
                         <tr key={ri}>
                           {row.map((cell, ci) => (
-                            <td key={ci} style={{ border: '1px solid #bbb', padding: '2px' }}>
+                            <td key={ci} style={{ border: '1px solid #a9a9a9', padding: '2px', height: '54px' }}>
                               <input value={cell} onChange={(e) => updateCell(tbl.id, ri, ci, e.target.value)}
-                                style={{ width: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', padding: '4px', color: pal.darkText }} />
+                                onFocus={() => setTableCtxMenu(null)}
+                                style={{ width: '100%', height: '100%', border: 'none', background: 'transparent', outline: 'none', fontSize: '13px', padding: '7px', color: pal.darkText, boxSizing: 'border-box' }} />
                             </td>
                           ))}
                         </tr>
                       ))}
                     </tbody>
                   </table>
-                  <button onClick={() => tableAddRow(tbl.id)} style={{ marginTop: '4px', fontSize: '11px', background: 'none', border: '1px dashed #aaa', borderRadius: '4px', width: '100%', cursor: 'pointer', color: '#888', padding: '2px 0' }}>
-                    + Add row
-                  </button>
                   {tableCtxMenu?.tableId === tbl.id && (
                     <div className="table-ctx-menu" onClick={(e) => e.stopPropagation()}
-                      style={{ position: 'absolute', top: '22px', left: `${(tableCtxMenu.colIndex / tbl.cols) * 100}%`, background: '#fff', border: '1px solid #e0e0e0', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,.15)', zIndex: 999, minWidth: '170px', overflow: 'hidden' }}>
-                      {[
-                        { label: 'Insert a front column', action: () => tableAddColBefore(tbl.id, tableCtxMenu.colIndex) },
-                        { label: 'Insert column after', action: () => tableAddColAfter(tbl.id, tableCtxMenu.colIndex) },
-                        { label: 'Delete column', action: () => tableDeleteCol(tbl.id, tableCtxMenu.colIndex) },
-                      ].map(({ label, action }) => (
+                      style={{
+                        position: 'absolute', zIndex: 999, minWidth: '170px', overflow: 'hidden',
+                        top: tableCtxMenu.type === 'column' ? '20px' : `calc(20px + ${(tableCtxMenu.index / tbl.rows) * 100}%)`,
+                        left: tableCtxMenu.type === 'column' ? `calc(20px + ${(tableCtxMenu.index / tbl.cols) * 100}%)` : '-150px',
+                        background: 'rgba(238,238,238,0.98)', border: '1px solid #dedede', borderRadius: '8px',
+                        boxShadow: '0 5px 18px rgba(0,0,0,.18)',
+                      }}>
+                      {(tableCtxMenu.type === 'column' ? [
+                        { label: 'Insert a front column', action: () => tableAddColBefore(tbl.id, tableCtxMenu.index) },
+                        { label: 'Insert column after', action: () => tableAddColAfter(tbl.id, tableCtxMenu.index) },
+                        { label: 'Delete column', action: () => tableDeleteCol(tbl.id, tableCtxMenu.index), destructive: true },
+                      ] : [
+                        { label: 'Insert a row above', action: () => tableAddRowBefore(tbl.id, tableCtxMenu.index) },
+                        { label: 'Insert a row below', action: () => tableAddRowAfter(tbl.id, tableCtxMenu.index) },
+                        { label: 'Delete row', action: () => tableDeleteRow(tbl.id, tableCtxMenu.index), destructive: true },
+                      ]).map(({ label, action, destructive }, optionIndex) => (
                         <button key={label} onClick={action}
-                          style={{ display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', color: label === 'Delete column' ? '#dc2626' : '#111' }}
+                          style={{ display: 'block', width: '100%', padding: '9px 14px', textAlign: 'left', background: 'none', border: 'none', borderTop: optionIndex === 2 ? '1px solid #c9c9c9' : 'none', cursor: 'pointer', fontSize: '13px', color: destructive ? '#111' : '#111' }}
                           onMouseEnter={(e) => e.currentTarget.style.background = '#f5f5f5'}
                           onMouseLeave={(e) => e.currentTarget.style.background = 'none'}>
                           {label}
@@ -347,7 +767,7 @@ export default function NoteEditor({
     <main className="note-editor" id="note-editor"
       onClick={(e) => {
         if (!e.target.closest('.editor-toolbar') && !e.target.closest('.search-wrapper')) closeAll();
-        if (!e.target.closest('.table-ctx-menu') && !e.target.closest('.col-handle')) setTableCtxMenu(null);
+        if (!e.target.closest('.table-ctx-menu') && !e.target.closest('.col-handle') && !e.target.closest('.row-handle')) setTableCtxMenu(null);
       }}>
 
       {/* ═══ BARRE D'OUTILS ═══════════════════════════════════════════════
@@ -437,13 +857,15 @@ export default function NoteEditor({
 
         {/* ── LISTE ── */}
         <div className="rel">
-          <button onClick={() => toggle('list')} title="Create a list"
-            style={{ background: openDD === 'list' ? '#dcdcdc' : 'transparent', borderRadius: '4px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
+          <button
+            onClick={() => activeListType ? disableList() : toggle('list')}
+            title={activeListType ? 'Désactiver la liste' : 'Créer une liste'}
+            style={{ background: openDD === 'list' || activeListType ? '#dcdcdc' : 'transparent', borderRadius: '4px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
             <i className="fa-solid fa-list-ul" style={{ fontSize: '15px', color: '#857f7f' }}></i>
           </button>
           {openDD === 'list' && (
             <div onClick={(e) => e.stopPropagation()} style={{ position: 'absolute', top: '100%', left: '0', marginTop: '4px', background: 'rgba(238,238,238,0.94)', backdropFilter: 'blur(25px)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', zIndex: 9999, width: '230px', display: 'flex', gap: '6px' }}>
-              <button onClick={closeAll} style={{ width: '42px', height: '54px', background: '#d0e1f9', border: 'none', borderRadius: '5px', color: '#0055cc', fontSize: '11px', fontWeight: '500', cursor: 'pointer' }}>None</button>
+              <button onClick={() => insertList('none')} style={{ width: '42px', height: '54px', background: '#d0e1f9', border: 'none', borderRadius: '5px', color: '#0055cc', fontSize: '11px', fontWeight: '500', cursor: 'pointer' }}>None</button>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '25px', flex: 1 }}>
                 {[
                   { type: 'disc', els: ['•','•','•'] }, { type: 'circle', els: ['◦','◦','◦'] },
@@ -535,9 +957,15 @@ export default function NoteEditor({
               <div className="link-divider" />
               <div className="link-manual-row">
                 <input type="text" className="link-manual-input" placeholder="Coller un lien..." value={linkInput}
-                  onChange={(e) => setLinkInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && insertCustomLink()} />
+                  onChange={(e) => { setLinkInput(e.target.value); setLinkError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && insertCustomLink()} />
                 <button className="link-add-btn" onClick={insertCustomLink}>Add</button>
               </div>
+              {linkError && (
+                <div role="alert" style={{ color: '#d93025', fontSize: '12px', padding: '8px 12px 2px' }}>
+                  {linkError}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -563,7 +991,7 @@ export default function NoteEditor({
           {openDD === 'lock' && (
             <div className="lock-dropdown">
               <button className="lock-item" onClick={handleLockToggleAction}>{note?.isLocked ? 'Unlock this note' : 'Lock this note'}</button>
-              <button className="lock-item" onClick={handleUnlockAll}>Close all locked notes</button>
+              <button className="lock-item" onClick={handleCloseAllLockedNotes}>Close all locked notes</button>
             </div>
           )}
         </div>
@@ -840,13 +1268,25 @@ export default function NoteEditor({
               </button>
             </div>
             <div className="media-modal-grid">
-              {(note?.images || []).filter((img) => mediaSearch === '' || img.name.toLowerCase().includes(mediaSearch.toLowerCase())).map((img) => (
-                <div key={img.id} className={`media-grid-item${selectedImg?.id === img.id ? ' selected' : ''}`} onClick={() => setSelectedImg(selectedImg?.id === img.id ? null : img)}>
-                  <img src={img.src} alt={img.name} />
-                  <div className="media-grid-name">{img.name.length > 12 ? img.name.slice(0, 9) + '...' : img.name}</div>
+              {mediaAssets.filter((asset) => {
+                const matchesTab = mediaTab === 'photos'
+                  ? asset.mime_type?.startsWith('image/')
+                  : asset.mime_type?.startsWith('video/');
+                return matchesTab && (mediaSearch.trim() === '' || asset.name.toLowerCase().includes(mediaSearch.toLowerCase()));
+              }).map((asset) => (
+                <div key={asset.id} className={`media-grid-item${selectedImg?.id === asset.id ? ' selected' : ''}`} onClick={() => setSelectedImg(selectedImg?.id === asset.id ? null : asset)}>
+                  {asset.mime_type?.startsWith('video/') ? (
+                    <div style={{ position: 'relative' }}>
+                      <video src={asset.src} muted preload="metadata" style={{ width: '100%', height: '80px', objectFit: 'cover' }} />
+                      <i className="fa-solid fa-circle-play" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', color: '#fff', fontSize: '24px', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }} />
+                    </div>
+                  ) : (
+                    <img src={asset.src} alt={asset.name} />
+                  )}
+                  <div className="media-grid-name">{asset.name.length > 12 ? asset.name.slice(0, 9) + '...' : asset.name}</div>
                 </div>
               ))}
-              {(note?.images || []).length === 0 && (
+              {!mediaLoading && mediaAssets.length === 0 && (
                 <div className="media-empty">
                   <i className="fa-regular fa-image" style={{ fontSize: '32px', color: '#ccc' }}></i>
                   <p style={{ fontSize: '12px', color: '#aaa', marginTop: '8px' }}>Aucune photo.<br/>
@@ -861,7 +1301,7 @@ export default function NoteEditor({
                 <i className="fa-solid fa-magnifying-glass media-search-icon"></i>
               </div>
               {selectedImg && <button className="media-insert-btn" onClick={insertSelectedImg}>Insert</button>}
-              <span className="media-count">{(note?.images || []).length}/{(note?.images || []).length}</span>
+              <span className="media-count">{mediaAssets.filter((asset) => mediaTab === 'photos' ? asset.mime_type?.startsWith('image/') : asset.mime_type?.startsWith('video/')).length}</span>
             </div>
           </div>
         </div>
@@ -875,8 +1315,8 @@ export default function NoteEditor({
               <button className="close-x" onClick={() => setLockStep(null)}>✕</button>
               <div className="lock-icon-circle"><i className="fa-solid fa-lock"></i></div>
               <h2>Choisissez une option ci-dessous</h2>
-              <button className="btn-lock-yellow" onClick={() => setLockStep('info-page1')}>Utiliser le mot de passe de session</button>
-              <button className="btn-lock-outline" onClick={() => setLockStep('info-page2')}>Créer un mot de passe personnalisé</button>
+              <button className="btn-lock-yellow" onClick={() => { setLockMode('session'); setLockStep('info-page1'); }}>Utiliser le mot de passe de session</button>
+              <button className="btn-lock-outline" onClick={() => { setLockMode('custom'); setLockStep('info-page2'); }}>Créer un mot de passe personnalisé</button>
               <span className="lock-link">En savoir plus</span>
             </div>
           )}
@@ -887,7 +1327,7 @@ export default function NoteEditor({
               <h2>Verrouiller avec le mot de passe de session</h2>
               <p>L'utilisation du code d'accès de votre appareil vous évite d'avoir à retenir un mot de passe distinct.</p>
               <div className="lock-dots"><div className="lock-dot active"/><div className="lock-dot"/></div>
-              <button className="btn-lock-yellow" onClick={() => setLockStep('password-input')}>Utiliser la session</button>
+              <button className="btn-lock-yellow" onClick={() => { setLockMode('session'); setPassword(''); setLockError(''); setLockStep('password-input'); }}>Utiliser la session</button>
             </div>
           )}
           {lockStep === 'info-page2' && (
@@ -897,18 +1337,46 @@ export default function NoteEditor({
               <h2>Créer un mot de passe distinct</h2>
               <p>La création d'un mot de passe dédié apporte une couche de sécurité supplémentaire.</p>
               <div className="lock-dots"><div className="lock-dot"/><div className="lock-dot active"/></div>
-              <button className="btn-lock-yellow" onClick={() => setLockStep('password-input')}>Créer pour cette note</button>
+              <button className="btn-lock-yellow" onClick={() => { setLockMode('custom'); setPassword(''); setLockError(''); setLockStep('password-input'); }}>Créer pour cette note</button>
             </div>
           )}
           {lockStep === 'password-input' && (
             <div className="lock-modal" onClick={(e) => e.stopPropagation()}>
               <div className="lock-icon-circle"><i className="fa-solid fa-lock"></i></div>
               <h2 style={{ marginBottom: '5px' }}>SpaceNotes</h2>
-              <p style={{ color: '#666', fontSize: '13px', marginBottom: '22px' }}>Saisissez le mot de passe pour verrouiller cette note.</p>
-              <input type="password" className="lock-input" placeholder="Mot de passe" value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
+              <p style={{ color: '#666', fontSize: '13px', marginBottom: '22px' }}>
+                {note?.isLocked || lockMode === 'unlock'
+                  ? 'Saisissez le mot de passe pour déverrouiller cette note.'
+                  : lockMode === 'session'
+                    ? 'Confirmez votre mot de passe de connexion pour verrouiller cette note.'
+                    : 'Créez un mot de passe distinct pour verrouiller cette note.'}
+              </p>
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type={showLockPassword ? 'text' : 'password'}
+                  className="lock-input"
+                  style={{ paddingRight: '46px' }}
+                  placeholder="Mot de passe"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setLockError(''); }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLockNote()}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLockPassword((visible) => !visible)}
+                  aria-label={showLockPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  style={{ position: 'absolute', right: '12px', top: '12px', border: 'none', background: 'transparent', color: '#777', cursor: 'pointer', fontSize: '16px' }}
+                >
+                  <i className={`fa-regular ${showLockPassword ? 'fa-eye' : 'fa-eye-slash'}`}></i>
+                </button>
+              </div>
+              {lockError && <div role="alert" style={{ color: '#dc2626', fontSize: '13px', margin: '-8px 0 16px' }}>{lockError}</div>}
               <div className="lock-modal-actions">
                 <button className="btn-lock-cancel" onClick={() => setLockStep(note?.isLocked ? null : 'options')}>Annuler</button>
-                <button className="btn-lock-yellow" style={{ flex: 1, margin: 0 }} onClick={handleLockNote}>Confirmer</button>
+                <button className="btn-lock-yellow" style={{ flex: 1, margin: 0 }} onClick={handleLockNote} disabled={lockBusy}>
+                  {lockBusy ? 'Vérification…' : 'Confirmer'}
+                </button>
               </div>
             </div>
           )}

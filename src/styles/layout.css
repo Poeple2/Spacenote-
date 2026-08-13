@@ -319,6 +319,34 @@ body {
   color: #6b7280;
 }
 
+.btn-sidebar-signout {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1px;
+  width: 100%;
+  margin-top: auto;
+  padding: 10px 133px 8px;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.btn-sidebar-signout:hover {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.05);
+}
+
+.btn-sidebar-signout:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .btn-new-folder {
   display: flex;
   align-items: center;
@@ -329,7 +357,7 @@ body {
   font-size: 13px;
   padding: 8px 16px;
   cursor: pointer;
-  margin-top: auto;
+  margin-top: 0;
   width: 100%;
 }
 

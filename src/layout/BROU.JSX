@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { COLOR_PALETTES } from '../App';
+import { COLOR_PALETTES } from '../constants/colors';
 
 const SHADE_MAP = {
   Yellow: '#d4d060', Green: '#22a046', Blue: '#0055cc', Red: '#cc2c20',

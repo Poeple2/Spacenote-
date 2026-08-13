@@ -1,9 +1,9 @@
-import React from 'react';
-import { COLOR_PALETTES } from '../App';
+import { COLOR_PALETTES } from '../constants/colors';
 
 /* Importation des images générées */
 import plusIcon from './icones plus.png';
 import trashIcon from './icone trash.png';
+import { supabase } from '../lib/supabase';
 
 
 export default function NoteList({
@@ -21,41 +21,96 @@ export default function NoteList({
       : notes.filter((note) => note.folder === 'Notes');
 
   /* Créer un nouveau groupe */
-  const addNote = () => {
-    const id = Date.now();
+  const addNote = async () => {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
-    const newGroup = {
-      id,
-      title: 'Untitled',
-      color: 'Yellow',
-      date: new Date().toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      folder: 'Notes',
-      cards: [
-        {
-          id: id + 1,
-          subtitle: 'Untitled',
-          text: 'Start a note...',
-        },
-      ],
-      tables: [],
-      links: [],
-      images: [],
-    };
+  if (userError || !user) {
+    window.alert(
+      "Vous devez être connecté pour créer une note."
+    );
+    return;
+  }
 
-    setNotes((previousNotes) => [
-      newGroup,
-      ...previousNotes,
-    ]);
+  const id = crypto.randomUUID();
 
-    setSelectedId(id);
+  const firstCard = {
+    id: crypto.randomUUID(),
+    subtitle: 'Untitled',
+    text: '',
   };
 
+  const newGroup = {
+    id,
+    title: 'Untitled',
+    text: '',
+    color: 'Yellow',
+    date: new Date().toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    folder: 'Notes',
+    cards: [firstCard],
+    tables: [],
+    links: [],
+    images: [],
+    isLocked: false,
+  };
+
+  /*
+   * Création immédiate de la note dans Supabase.
+   * La note existe donc dans la base avant d’être affichée.
+   */
+  const { error } = await supabase
+    .from('notes')
+    .insert({
+      id,
+      user_id: user.id,
+      title: newGroup.title,
+      content: newGroup.text,
+      color: newGroup.color,
+      folder: newGroup.folder,
+      cards: newGroup.cards,
+      is_locked: false,
+    });
+
+  if (error) {
+    console.error('Erreur de création de la note :', error);
+
+    window.alert(
+      `La note n'a pas pu être créée : ${error.message}`
+    );
+
+    return;
+  }
+
+  /*
+   * La note est ajoutée à l’interface seulement après
+   * sa création réussie dans Supabase.
+   */
+  setNotes((previousNotes) => [
+    newGroup,
+    ...previousNotes,
+  ]);
+
+  setSelectedId(id);
+};
+
   /* Supprimer le groupe sélectionné */
-  const deleteNote = () => {
+  const deleteNote = async () => {
     if (!selectedId) return;
+
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', selectedId);
+
+    if (error) {
+      window.alert(`La note n'a pas pu être supprimée : ${error.message}`);
+      return;
+    }
 
     setNotes((previousNotes) => {
       const nextNotes = previousNotes.filter(

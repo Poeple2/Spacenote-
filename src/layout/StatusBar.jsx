@@ -1,4 +1,3 @@
-import React from 'react';
 
 const statuses = [
   { label: 'Perfect/Completed',   bg: '#2563eb', color: '#fff' },

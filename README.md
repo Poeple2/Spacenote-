@@ -1,19 +1,39 @@
-l'URL: https://github.com/Poeple2/Spacenote-/new/main?filename=README.md
+# SpaceNotes
 
-Voici les étapes exactes pour télécharger le  projet et l'ouvrir dans Visual Studio Code :
-Sur la page de ton dépôt GitHub, clique sur le bouton vert Code, puis copie l'URL HTTPS.
-Ouvre son terminal (ou invite de commande) et tape la commande suivante pour cloner le projet :
+Application React/Vite connectée à Supabase pour l'authentification et la sauvegarde des notes.
 
-git clone https://github.com/Poeple2/Spacenote-/new/main?filename=README.md
+## Installation
 
-Une fois le dossier téléchargé, entre dedans :
+1. Installer les dépendances :
 
-cd Spacenote-
+   ```bash
+   npm install
+   ```
 
-Installe les dépendances nécessaires avec npm :
+2. Copier `.env.example` vers `.env.local` et remplacer les deux valeurs par celles du projet Supabase :
 
-npm install
+   ```env
+   VITE_SUPABASE_URL=https://votre-projet.supabase.co
+   VITE_SUPABASE_PUBLISHABLE_KEY=votre_cle_publiable
+   ```
 
-Enfin, ouvre le projet directement dans Visual Studio Code en tapant :
+   Ces valeurs se trouvent dans Supabase : **Project Settings > API**. Ne jamais placer la clé `service_role` dans cette application.
 
-code .
+3. Dans le **SQL Editor** de Supabase, exécuter le fichier `supabase/notes.sql` une seule fois.
+
+4. Démarrer l'application :
+
+   ```bash
+   npm run dev
+   ```
+
+## Fonctionnalités Supabase intégrées
+
+- inscription et connexion par e-mail/mot de passe ;
+- session conservée après le rechargement de la page ;
+- chargement des notes appartenant à l'utilisateur connecté ;
+- création et modification avec enregistrement automatique ;
+- suppression d'une note ;
+- protection des données par Row Level Security (RLS).
+
+Le fichier `.env.local` est volontairement ignoré par Git et n'est pas inclus dans les archives de livraison.

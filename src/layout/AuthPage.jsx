@@ -8,13 +8,7 @@ import iconeUnemployed from './logo3.jpeg';
 // Logo utilisé UNIQUEMENT pour l'icône qui orbite dans la spirale (différent du logo central).
 // Remplace le fichier logo4.jpeg (ou change ce chemin) par ton propre visuel pour la spirale.
 import logoOrbit from './logo.jpeg'; 
-
-// Données des rôles adaptées à la maquette
-const ROLES = [
-  { id: 'people', label: 'People', faIcon: 'fa-user', iconColor: '#000000' },
-  { id: 'companies', label: 'Companies', faIcon: 'fa-building', iconColor: '#0072c6' },
-  { id: 'ai', label: 'Artificial Intelligence', icon: iconeAI, isAI: true },
-];
+import { supabase } from '../lib/supabase';
 
 // Liste des occupations de la maquette
 const OCCUPATIONS = [
@@ -478,7 +472,6 @@ export default function AuthPage({ onAuth }) {
   
   // States Sign In
   const [siEmail, setSiEmail] = useState('');
-  const [showSiEmail, setShowSiEmail] = useState(false);
   const [siPass, setSiPass] = useState('');
   const [showSiPass, setShowSiPass] = useState(false);
 
@@ -526,6 +519,9 @@ export default function AuthPage({ onAuth }) {
   const [isVerified, setIsVerified] = useState(false);
   const [isFinalLogoScreen, setIsFinalLogoScreen] = useState(false);
   const [isSignInVerified, setIsSignInVerified] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [authMessage, setAuthMessage] = useState('');
 
   // ── États pour le flow "Mot de passe oublié" ──
   const [resetCode, setResetCode] = useState('');
@@ -549,18 +545,73 @@ export default function AuthPage({ onAuth }) {
     };
   }, []);
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     if (!siEmail.trim() || !siPass.trim()) return;
+
+    setAuthLoading(true);
+    setAuthError('');
+    setAuthMessage('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: siEmail.trim(),
+      password: siPass,
+    });
+
+    if (error) {
+      setAuthLoading(false);
+      setAuthError(error.message === 'Invalid login credentials'
+        ? 'Adresse e-mail ou mot de passe incorrect.'
+        : error.message);
+      return;
+    }
+
     setIsSignInVerified(true);
     setTimeout(() => {
+      setAuthLoading(false);
       onAuth && onAuth();
     }, 2500);
   };
 
-  const handleSignUpNext = () => {
+  const handleSignUpNext = async () => {
     if (suStep < 4) {
       setSuStep(suStep + 1);
     } else {
+      setAuthLoading(true);
+      setAuthError('');
+      setAuthMessage('');
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
+        password,
+        options: {
+          data: {
+            username: username.trim(),
+            full_name: fullname.trim(),
+            role: selectedRole,
+            occupation,
+            institution: institution.trim(),
+            interests: selectedInterests,
+            birthdate,
+            phone: `${countryCode}${phone.trim()}`,
+          },
+        },
+      });
+
+      if (error) {
+        setAuthLoading(false);
+        setAuthError(error.message);
+        return;
+      }
+
+      if (!data.session) {
+        setAuthLoading(false);
+        setMode('signin');
+        setAuthMessage(
+          'Compte créé. Vérifiez votre boîte e-mail, confirmez votre adresse, puis connectez-vous.'
+        );
+        return;
+      }
+
       // Déclenchement de la séquence d'écrans de chargement animés
       setIsProcessing(true);
       
@@ -574,6 +625,7 @@ export default function AuthPage({ onAuth }) {
           
           // Phase 3 : Écran logo minimaliste blanc pendant 1.5 secondes (image_e519df.png)
           setTimeout(() => {
+            setAuthLoading(false);
             onAuth && onAuth();
           }, 1500);
         }, 3500);
@@ -1084,40 +1136,16 @@ export default function AuthPage({ onAuth }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '340px', marginBottom: '24px' }}>
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <input
-                    style={{ ...S.input, paddingRight: '60px' }}
-                    type={showSiEmail ? 'text' : 'password'}
-                    placeholder="User name/email"
-                    value={siEmail}
-                    onChange={(e) => setSiEmail(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSiEmail((visible) => !visible)}
-                    aria-label={showSiEmail ? 'Masquer le nom utilisateur ou email' : 'Afficher le nom utilisateur ou email'}
-                    title={showSiEmail ? 'Masquer' : 'Afficher'}
-                    style={{
-                      position: 'absolute',
-                      right: '16px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '30px',
-                      height: '30px',
-                      padding: 0,
-                      border: 'none',
-                      background: 'transparent',
-                      color: '#9a9a9a',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '17px',
-                    }}
-                  >
-                    <i className={`fa-regular ${showSiEmail ? 'fa-eye' : 'fa-eye-slash'}`}></i>
-                  </button>
-                </div>
+                <input
+                  style={S.input}
+                  type="email"
+                  placeholder="Email address"
+                  value={siEmail}
+                  onChange={(e) => setSiEmail(e.target.value)}
+                  autoComplete="email"
+                  inputMode="email"
+                  required
+                />
                 <div style={{ position: 'relative', width: '100%' }}>
                   <input 
                     style={{ ...S.input, paddingRight: '60px' }}
@@ -1126,6 +1154,8 @@ export default function AuthPage({ onAuth }) {
                     value={siPass} 
                     onChange={(e) => setSiPass(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSignIn()} 
+                    autoComplete="current-password"
+                    required
                   />
                   <button
                     type="button"
@@ -1158,9 +1188,28 @@ export default function AuthPage({ onAuth }) {
                 <div style={{ textAlign: 'center' }}>
                   <span style={S.link} onClick={handleOpenForgotPassword}>Forgotten password ?</span>
                 </div>
+                {(authError || authMessage) && (
+                  <div
+                    role={authError ? 'alert' : 'status'}
+                    style={{
+                      color: authError ? '#dc2626' : '#15803d',
+                      fontSize: '12px',
+                      lineHeight: 1.4,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {authError || authMessage}
+                  </div>
+                )}
               </div>
 
-              <button style={S.btnYellow} onClick={handleSignIn}>CONFIRM</button>
+              <button
+                style={authLoading ? S.btnNextDisabled : S.btnYellow}
+                onClick={handleSignIn}
+                disabled={authLoading}
+              >
+                {authLoading ? 'CONNECTION…' : 'CONFIRM'}
+              </button>
             </div>
           </div>
         </>
@@ -1509,6 +1558,12 @@ style={{
                       </button>
                     </div>
 
+                    {authError && (
+                      <div role="alert" style={{ color: '#dc2626', fontSize: '12px', textAlign: 'center', lineHeight: 1.4 }}>
+                        {authError}
+                      </div>
+                    )}
+
                   </div>
                 </>
               )}
@@ -1567,11 +1622,11 @@ style={{
                   </button>
                 ) : (
                   <button 
-                    style={{ ...(isStep4Valid ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
+                    style={{ ...((isStep4Valid && !authLoading) ? S.btnYellow : S.btnNextDisabled), width: '295px', height: '40px' }} 
                     onClick={handleSignUpNext}
-                    disabled={!isStep4Valid}
+                    disabled={!isStep4Valid || authLoading}
                   >
-                    CONFIRM
+                    {authLoading ? 'CREATION…' : 'CONFIRM'}
                   </button>
                 )}
               </div>

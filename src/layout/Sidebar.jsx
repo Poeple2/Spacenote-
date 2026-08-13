@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export default function Sidebar({
   notes,
@@ -8,6 +7,8 @@ export default function Sidebar({
   viewMode,
   setViewMode,
   onCloseSidebar,
+  onSignOut,
+  isSigningOut,
 }) {
   const [folders, setFolders] = useState([
     { id: 'all',   label: 'MySpace (All)' },
@@ -21,7 +22,7 @@ export default function Sidebar({
 
   // Gestion des lignes de filtres dynamiques (image_eb9aeb.png, image_eba64e.png)
   const [filterRows, setFilterRows] = useState([
-    { id: Date.now(), type: 'Filters', contentMode: 'All filters', textValue: '' }
+    { id: crypto.randomUUID(), type: 'Filters', contentMode: 'All filters', textValue: '' }
   ]);
 
   const countForFolder = (fid) => {
@@ -35,7 +36,7 @@ export default function Sidebar({
   const addFilterRow = () => {
     setFilterRows([
       ...filterRows,
-      { id: Date.now() + Math.random(), type: 'Modif date', contentMode: 'Today', textValue: '' }
+      { id: crypto.randomUUID(), type: 'Modif date', contentMode: 'Today', textValue: '' }
     ]);
   };
 
@@ -66,7 +67,7 @@ export default function Sidebar({
     // Réinitialisation globale après sauvegarde (image_eb9f07.png)
     setFolderName('New folder');
     setIsSmartFolder(false);
-    setFilterRows([{ id: Date.now(), type: 'Filters', contentMode: 'All filters', textValue: '' }]);
+    setFilterRows([{ id: crypto.randomUUID(), type: 'Filters', contentMode: 'All filters', textValue: '' }]);
     setIsModalOpen(false);
   };
 
@@ -177,6 +178,18 @@ export default function Sidebar({
             ))}
           </ul>
         </div>
+
+        {/* Déconnexion */}
+        <button
+          type="button"
+          className="btn-sidebar-signout"
+          onClick={onSignOut}
+          disabled={isSigningOut}
+          title="Se déconnecter"
+        >
+          <i className="fa-solid fa-arrow-right-from-bracket" />
+          <span>{isSigningOut ? 'Déconnexion…' : 'Déconnexion'}</span>
+        </button>
 
         {/* Nouveau dossier */}
         <button className="btn-new-folder" onClick={() => setIsModalOpen(true)}>
