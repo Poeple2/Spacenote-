@@ -997,17 +997,68 @@ export default function NoteEditor({
         </div>
 
         {/* ── TABLEAU ── */}
-        <div className="rel">
-          <button onClick={(e) => { e.stopPropagation(); if (!note) return; note.tables?.length > 0 ? updateNote({ tables: [] }) : insertTable(2, 2); }}
-            title={note?.tables?.length > 0 ? 'Remove table' : 'Add a table'}
-            style={{ background: note?.tables?.length > 0 ? '#dcdcdc' : 'transparent', borderRadius: '5px', border: 'none', padding: '6px 10px', cursor: 'pointer' }}>
-            <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
-              <rect x="0.5" y="0.5" width="17" height="13" rx="1.5" stroke="#857f7f" strokeWidth="1"/>
-              <line x1="9" y1="0.5" x2="9" y2="13.5" stroke="#857f7f" strokeWidth="1"/>
-              <line x1="0.5" y1="7" x2="17.5" y2="7" stroke="#857f7f" strokeWidth="1"/>
-            </svg>
-          </button>
-        </div>
+<div className="rel">
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation();
+
+      if (!note) return;
+
+      // Ajoute un nouveau tableau sans supprimer les tableaux existants
+      insertTable(2, 2);
+    }}
+    title={
+      note?.tables?.length > 0
+        ? 'Add another table'
+        : 'Add a table'
+    }
+    style={{
+      background:
+        note?.tables?.length > 0
+          ? '#dcdcdc'
+          : 'transparent',
+      borderRadius: '5px',
+      border: 'none',
+      padding: '6px 10px',
+      cursor: 'pointer',
+    }}
+  >
+    <svg
+      width="18"
+      height="14"
+      viewBox="0 0 18 14"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="0.5"
+        y="0.5"
+        width="17"
+        height="13"
+        rx="1.5"
+        stroke="#857f7f"
+        strokeWidth="1"
+      />
+      <line
+        x1="9"
+        y1="0.5"
+        x2="9"
+        y2="13.5"
+        stroke="#857f7f"
+        strokeWidth="1"
+      />
+      <line
+        x1="0.5"
+        y1="7"
+        x2="17.5"
+        y2="7"
+        stroke="#857f7f"
+        strokeWidth="1"
+      />
+    </svg>
+  </button>
+</div>
 
         {/* ── IMAGE / MEDIA ── */}
         <div className="rel">
