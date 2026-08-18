@@ -211,6 +211,7 @@ function App() {
   const [viewMode, setViewMode] = useState('list');
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const [groupTitle, setGroupTitle] = useState('');
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
@@ -370,6 +371,49 @@ function App() {
     setPhase('app');
   };
 
+  /*
+   * Déconnecte réellement l’utilisateur de Supabase,
+   * vide les données locales et retourne à l’écran de connexion.
+   */
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+
+    try {
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      setUser(null);
+      setNotes([]);
+      setSelectedId(null);
+      setSelectedFolder('all');
+      setNotesLoaded(false);
+      setSyncStatus('idle');
+      setGroupTitle('');
+      setIsGroupModalOpen(false);
+      setIsSidebarOpen(true);
+      setPhase('auth');
+    } catch (error) {
+      console.error('Erreur de déconnexion :', error);
+      window.alert(
+        error?.message
+          ? `Impossible de se déconnecter : ${error.message}`
+          : 'Impossible de se déconnecter.'
+      );
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   const handleSaveGroupTitle = () => {
     if (tempGroupTitle.trim()) {
       setGroupTitle(tempGroupTitle.trim());
@@ -406,6 +450,8 @@ function App() {
             viewMode={viewMode}
             setViewMode={setViewMode}
             onCloseSidebar={() => setIsSidebarOpen(false)}
+            onSignOut={handleSignOut}
+            isSigningOut={isSigningOut}
           />
         </div>
 
